@@ -1,7 +1,6 @@
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from bot import admins, texts, connector
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from bot import texts, connector
 
 buttons_texts = texts['buttons']
 

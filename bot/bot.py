@@ -5,13 +5,11 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage
 from decouple import config
 import json
-from utils.connector import Connector
+from utils.connector import Connector, AppType
 
-admins = [int(admin_id) for admin_id in config('ADMINS').split(',')]
 texts = json.load(open('utils/texts.json', 'r', encoding='utf-8'))
-constants = json.load(open(config('CONSTANTS_PATH'), 'r', encoding='utf-8'))
-
-connector = Connector("", "", config('REDIS_STORAGE'), constants['redis'])
+connector = Connector(AppType.TELEGRAM, config('SERVER_URL'), config('SERVER_PORT'), config('REDIS_STORAGE'))
+constants = connector.get_config()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
