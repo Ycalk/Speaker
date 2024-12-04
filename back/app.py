@@ -29,8 +29,9 @@ async def validate():
     else:
         return jsonify({"error": "Validation failed"}), 400
 
+# TODO request to gpt
 async def validate_name(name: str) -> bool:
     return name.isalpha() and len(name) > 3
 
-if __name__ == '__main__':
+def main():
     app.run()
