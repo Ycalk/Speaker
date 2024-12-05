@@ -11,7 +11,6 @@ class Listener:
         pubsub = self._redis.pubsub()
         await pubsub.subscribe(self.channel)
         async for message in pubsub.listen():
-            print(message)
             if message['type'] == 'message':
                 data = json.loads(message['data'])
                 await self.handler(data)
