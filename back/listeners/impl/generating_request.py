@@ -1,4 +1,5 @@
 import json
+import datetime
 from listeners.base import Listener
 import logging
 import uuid
@@ -15,6 +16,7 @@ class GeneratingRequestListener (Listener):
         self.logger.info("Received data: %s", data)
         try:
             data['id'] = str(uuid.uuid4())
+            data['generation_start'] = datetime.datetime.now().isoformat() 
             await self._redis.rpush(self.__queue_name, json.dumps(data))
             self.logger.info("Processed data and pushed to queue: %s", data)
         except json.JSONDecodeError as e:

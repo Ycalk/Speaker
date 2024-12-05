@@ -1,7 +1,7 @@
 import enum
 import json
 import logging
-
+import datetime
 import requests
 
 from handlers.generator import Generator
@@ -78,6 +78,7 @@ class VoiceGeneration:
             if response.status_code == 200:
                 self.__status = VoiceGenerationStatus.VOICE_CHANGE
                 self.request['audio'] = response.json()['result']['audioChunk']['data']
+                self.request['tts_generated'] = datetime.datetime.now().isoformat()
                 self.logger.info("Voice generation successful for request: %s", 
                                  {k: v for k, v in self.request.items() if k != 'audio'})
             else:
