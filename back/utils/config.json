@@ -1,0 +1,9 @@
+{
+    "redis":{
+        "user_data_table": 0,
+        "generating_queue_table": 1,
+        "fsm_storage_table": 10
+    },
+
+    "MAX_NAME_LENGTH": 20
+}
