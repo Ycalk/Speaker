@@ -2,7 +2,21 @@
     "redis":{
         "user_data_table": 0,
         "generating_queue_table": 1,
-        "fsm_storage_table": 10
+        "fsm_storage_table": 10,
+
+        "generating_queue_table_keys":{
+            "voice": "voice_queue",
+            "video": "video_queue"
+        },
+
+        "channels": {
+            "to_generate": "queue",
+            "generated": "generated"
+        }
+    },
+
+    "YC" : {
+        "TTS_URL": "https://tts.api.cloud.yandex.net/tts/v3/utteranceSynthesis"
     },
 
     "MAX_NAME_LENGTH": 20
