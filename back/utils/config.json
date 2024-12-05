@@ -11,12 +11,13 @@
 
         "channels": {
             "to_generate": "queue",
+            "voice_generated": "voice_generated",
             "generated": "generated"
         }
     },
 
-    "YC" : {
-        "TTS_URL": "https://tts.api.cloud.yandex.net/tts/v3/utteranceSynthesis"
+    "yc" : {
+        "tts_url": "https://tts.api.cloud.yandex.net/tts/v3/utteranceSynthesis"
     },
 
     "MAX_NAME_LENGTH": 20
