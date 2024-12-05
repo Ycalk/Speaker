@@ -6,7 +6,7 @@ app = Quart(__name__)
 @app.route('/config', methods=['GET'])
 async def get_config():
     try:
-        with open('utils/config.json', 'r') as config_file:
+        with open('utils/config.json', 'r', encoding='utf-8') as config_file:
             config_data = json.load(config_file)
             return jsonify(config_data)
     except FileNotFoundError:
@@ -17,7 +17,7 @@ async def get_config():
 @app.route('/celebrities', methods=['GET'])
 async def get_celebrities():
     try:
-        with open('utils/celebrities.json', 'r') as config_file:
+        with open('utils/celebrities.json', 'r', encoding='utf-8') as config_file:
             config_data = json.load(config_file)
             return jsonify(config_data)
     except Exception as e:
