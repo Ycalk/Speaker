@@ -9,12 +9,13 @@ class VoiceGenerator(Generator):
     __max_threads = 10
     
     def __init__(self, redis_storage, table: int, queue_name: str, tts_model_url: str, 
-                 iam_token: str, folder_id: str, return_voice_channel: str):
+                 api_key: str, folder_id: str, return_voice_channel: str, voice_changer_server_path: str):
         generation_config = {
             'tts_model_url': tts_model_url,
-            'iam_token': iam_token,
+            'api_key': api_key,
             'folder_id': folder_id,
-            'return_voice_channel': return_voice_channel
+            'return_voice_channel': return_voice_channel,
+            'voice_changer_server_path': voice_changer_server_path
         }
         self.generation_requests : list[VoiceGeneration] = []
         self.__lock = threading.Lock()
