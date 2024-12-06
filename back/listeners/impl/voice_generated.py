@@ -18,9 +18,13 @@ class VoiceGeneratedListener (Listener):
         if 'audio' not in data:
             self.logger.error("No audio data in the message: %s", data)
             return
-        audio_data = base64.b64decode(data['audio'])
-        audio_array = np.frombuffer(audio_data[44:], dtype=np.int16)
-        sample_rate = 22050
-        write('output.wav', sample_rate, audio_array)
-        data['audio'] = 'output.wav'
-        self.logger.info("Received data: %s", data)
+        try:
+            self.logger.info("Received audio data in voice_generated_queue")
+            audio_data = base64.b64decode(data['audio'])
+            audio_array = np.frombuffer(audio_data[44:], dtype=np.int16)
+            sample_rate = 22050
+            write('output.wav', sample_rate, audio_array)
+            data['audio'] = 'output.wav'
+            self.logger.info("Received data: %s", data)
+        except Exception as e:
+            self.logger.error("An error occurred while handling the message in voice_generated_queue: %s", e)
