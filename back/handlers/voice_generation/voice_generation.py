@@ -44,6 +44,15 @@ class VoiceGenerationStatus(enum.Enum):
     FAILED = 4
 
 class VoiceGeneration:
+    __celebrity_to_model ={
+        "vidos_good_v1": "vidos_good_1",
+        "vidos_good_v2": "vidos_good_1",
+        "vidos_bad_v1": "vidos_good_1",
+        "vidos_bad_v2": "vidos_good_1",
+        "vidos_bad_v3": "vidos_good_1"
+    }
+    
+    
     def __init__(self, g : Generator, request: dict):
         self.__status = VoiceGenerationStatus.CREATED
         self.request = request
@@ -58,7 +67,8 @@ class VoiceGeneration:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
         
-        if self.request['celebrity_code'] in ("vidos_good_1", "vidos_good_2", "vidos_bad"):
+        if self.request['celebrity_code'] in ("vidos_good_v1", "vidos_good_v2", 
+                                              "vidos_bad_v1", "vidos_bad_v2", "vidos_bad_v3"):
             self.__prompt = _PromptGenerator.get_vidos_prompt(self.request['user_name'])
             self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
     
@@ -108,7 +118,8 @@ class VoiceGeneration:
         try:
             self.logger.info("Changing voice for request: %s", {k: v for k, v in self.request.items() if k != 'audio'})
             self.redis.publish(self.vc_request, json.dumps({"request_id": self.request['id'], 
-                                                            "audio": audio_data, 'celebrity_code': self.request['celebrity_code']}))
+                                                            "audio": audio_data, 
+                                                            'celebrity_code': VoiceGeneration.__celebrity_to_model[self.request['celebrity_code']]}))
             pubsub = self.redis.pubsub()
             pubsub.subscribe(self.vc_response)
             response = None

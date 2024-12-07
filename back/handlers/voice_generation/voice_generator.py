@@ -11,6 +11,8 @@ class VoiceGenerator(Generator):
     def __init__(self, redis_storage, table: int, queue_name: str, tts_model_url: str, 
                  api_key: str, folder_id: str, return_voice_channel: str, 
                  voice_changer_request_channel: str, voice_changer_response_channel: str):
+        logging.basicConfig(level=logging.INFO)
+        
         generation_config = {
             'tts_model_url': tts_model_url,
             'api_key': api_key,
@@ -23,7 +25,6 @@ class VoiceGenerator(Generator):
         self.__lock = threading.Lock()
         super().__init__(redis_storage, generation_config, table, queue_name, VoiceGenerator.__max_threads)
         
-        logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
     
     def _start_generating(self, message):
