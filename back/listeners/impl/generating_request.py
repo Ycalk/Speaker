@@ -3,6 +3,7 @@ import datetime
 from listeners.base import Listener
 import logging
 import uuid
+import random
 
 class GeneratingRequestListener (Listener):
     
@@ -17,6 +18,8 @@ class GeneratingRequestListener (Listener):
         try:
             data['id'] = str(uuid.uuid4())
             data['generation_start'] = datetime.datetime.now().isoformat() 
+            if data['celebrity_code'] == 'vidos_good':
+                data['celebrity_code'] = random.choice(['vidos_good_1', 'vidos_good_2'])
             await self._redis.rpush(self.__queue_name, json.dumps(data))
             self.logger.info("Processed data and pushed to queue: %s", data)
         except json.JSONDecodeError as e:
