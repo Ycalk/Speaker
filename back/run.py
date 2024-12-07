@@ -7,7 +7,7 @@ from app import main as start_app
 from decouple import config
 
 def start_voice_generator(redis_storage, table, queue_name, tts_model_url, api_key, folder_id, 
-                          return_voice_channel, voice_changer_server_path):
+                          return_voice_channel, voice_changer_request_channel, voice_changer_response_channel):
     voice_generator = VoiceGenerator(
         redis_storage=redis_storage,
         table=table,
@@ -16,7 +16,8 @@ def start_voice_generator(redis_storage, table, queue_name, tts_model_url, api_k
         api_key=api_key,
         folder_id=folder_id,
         return_voice_channel=return_voice_channel,
-        voice_changer_server_path=voice_changer_server_path
+        voice_changer_request_channel=voice_changer_request_channel,
+        voice_changer_response_channel=voice_changer_response_channel
     )
     voice_generator.start_listening()
 
@@ -43,12 +44,13 @@ if __name__ == '__main__':
         api_key = config('YC_API_KEY')
         folder_id = config('YC_FOLDER_ID')
         return_voice_channel = json_file['redis']['channels']['voice_generated']
-        voice_changer_server_path = config('VOICE_CHANGER_SERVER_PATH')
+        voice_changer_request_channel = config('VOICE_CHANGER_REQUEST_CHANNEL')
+        voice_changer_response_channel = config('VOICE_CHANGER_RESPONSE_CHANNEL')
         
         voice_generator_process = multiprocessing.Process(
             target=start_voice_generator,
             args=(redis_storage, table, queue_name, tts_model_url, api_key, folder_id, 
-                  return_voice_channel, voice_changer_server_path)
+                  return_voice_channel, voice_changer_request_channel, voice_changer_response_channel)
         )
         atexit.register(exit_handler, voice_generator_process)
         

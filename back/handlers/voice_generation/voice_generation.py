@@ -6,7 +6,6 @@ import requests
 
 from handlers.generator import Generator
 
-
 class _PromptGenerator:
     default_prompt = {
         "text": "",
@@ -53,12 +52,13 @@ class VoiceGeneration:
         self.folder_id = g.generation_config['folder_id']
         self.redis = g.redis
         self.return_voice_channel = g.generation_config['return_voice_channel']
-        self.voice_changer_server_path = g.generation_config['voice_changer_server_path']
+        self.vc_request = g.generation_config['voice_changer_request_channel']
+        self.vc_response = g.generation_config['voice_changer_response_channel']
         
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
         
-        if self.request['celebrity_code'] == "vidos_good":
+        if self.request['celebrity_code'] in ("vidos_good_1", "vidos_good_2", "vidos_bad"):
             self.__prompt = _PromptGenerator.get_vidos_prompt(self.request['user_name'])
             self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
     
@@ -84,16 +84,22 @@ class VoiceGeneration:
                                  {k: v for k, v in self.request.items() if k != 'audio'})
                 self.request['tts_generated'] = datetime.datetime.now().isoformat()
                 
-                self.voice_change(audio_data)
+                res = self.voice_change(audio_data)
+                if not res:
+                    self.__status = VoiceGenerationStatus.FAILED
+                    self.request['error'] = "Voice change failed"
             else:
                 self.__status = VoiceGenerationStatus.FAILED
                 self.logger.error("Voice generation failed with status code: %d, response: %s", response.status_code, response.text)
+                self.request['error'] = f"Voice generation failed with status code: {response.status_code}"
         except requests.RequestException as e:
             self.__status = VoiceGenerationStatus.FAILED
-            self.logger.error("An error occurred while making the request: %s", e)
+            self.logger.error("An error occurred while making the tts request: %s", e)
+            self.request['error'] = f"An error occurred while making the tts request: {str(e)}"
         except Exception as e:
             self.__status = VoiceGenerationStatus.FAILED
             self.logger.error("An error occurred: %s", e)
+            self.request['error'] = f"An error occurred: {str(e)}"
         finally:
             self.redis.publish(self.return_voice_channel, json.dumps(self.request))
             self.logger.info("Published request to return voice channel: %s", self.return_voice_channel)
@@ -101,19 +107,30 @@ class VoiceGeneration:
     def voice_change(self, audio_data):
         try:
             self.logger.info("Changing voice for request: %s", {k: v for k, v in self.request.items() if k != 'audio'})
-            response = requests.post(self.voice_changer_server_path, json={'audio': audio_data, 'celebrity_code': self.request['celebrity_code']})
-            if response.status_code == 200:
+            self.redis.publish(self.vc_request, json.dumps({"request_id": self.request['id'], 
+                                                            "audio": audio_data, 'celebrity_code': self.request['celebrity_code']}))
+            pubsub = self.redis.pubsub()
+            pubsub.subscribe(self.vc_response)
+            response = None
+            for message in pubsub.listen():
+                if message['type'] == 'message':
+                    response = json.loads(message['data'])
+                    if response['request_id'] == self.request['id']:
+                        break
+            
+            if response['audio'] != '':
                 self.__status = VoiceGenerationStatus.COMPLETED
                 self.logger.info("Voice change successful for request: %s", 
                                  {k: v for k, v in self.request.items() if k != 'audio'})
                 self.request['voice_changed'] = datetime.datetime.now().isoformat()
-                self.request['audio'] = response.json()['result']
+                self.request['audio'] = response['audio']
+                return True
             else:
                 self.__status = VoiceGenerationStatus.FAILED
-                self.logger.error("Voice change failed with status code: %d, response: %s", response.status_code, response.text)
-        except requests.RequestException as e:
-            self.__status = VoiceGenerationStatus.FAILED
-            self.logger.error("An error occurred while making the request: %s", e)
+                self.logger.error("Voice change failed for request: %s", 
+                                  {k: v for k, v in self.request.items() if k != 'audio'})
+                return False
         except Exception as e:
             self.__status = VoiceGenerationStatus.FAILED
             self.logger.error("An error occurred: %s", e)
+            return False
