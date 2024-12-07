@@ -12,12 +12,20 @@ class GeneratingRequestListener (Listener):
         self.__queue_name = queue_name
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
+        with open('utils/celebrities.json') as f:
+            self.valid_celebrities_codes = ['vidos_good', 'vidos_bad']
+            data = json.load(f)
+            for celebrity in data:
+                if celebrity['code'] != 'vidos':
+                    self.valid_celebrities_codes.append(celebrity['code'])
     
     async def handler(self, data : dict):
         self.logger.info("Received data: %s", data)
         try:
             data['id'] = str(uuid.uuid4())
-            data['generation_start'] = datetime.datetime.now().isoformat() 
+            data['generation_start'] = datetime.datetime.now().isoformat()
+            if 'celebrity_code' not in data:
+                data['celebrity_code'] = random.choice(self.valid_celebrities_codes)
             if data['celebrity_code'] == 'vidos_good':
                 data['celebrity_code'] = random.choice(['vidos_good_1', 'vidos_good_2'])
             await self._redis.rpush(self.__queue_name, json.dumps(data))
