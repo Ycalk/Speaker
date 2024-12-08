@@ -9,6 +9,7 @@ from app import main as start_app
 from dotenv import load_dotenv
 import os
 
+
 def start_voice_generator(redis_storage, table, queue_name, tts_model_url, api_key, folder_id, 
                           return_voice_channel, voice_changer_request_channel, voice_changer_response_channel):
     voice_generator = VoiceGenerator(
@@ -24,6 +25,7 @@ def start_voice_generator(redis_storage, table, queue_name, tts_model_url, api_k
     )
     voice_generator.start_listening()
 
+
 def start_video_generator(redis_storage, table, queue_name, video_generated_channel):
     video_generator = VideoGenerator(
         redis_storage=redis_storage,
@@ -33,12 +35,12 @@ def start_video_generator(redis_storage, table, queue_name, video_generated_chan
     )
     video_generator.start_listening()
 
+
 def exit_handler(process):
     if process.is_alive():
         process.terminate()
         process.join()
         
-
     
 if __name__ == '__main__':
     load_dotenv()

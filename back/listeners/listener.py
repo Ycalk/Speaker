@@ -17,6 +17,7 @@ async def _start(redis_storage, config):
                                          config['redis']['channels']['to_generate'],
                                          config['redis']['generating_queue_table_keys']['voice'], s3, 
                                          config['redis']['channels']['voice_generated'])
+    
     voice_generated_listener = VoiceGeneratedListener(redis_storage, int(config['redis']['generating_queue_table']),
                                          config['redis']['channels']['voice_generated'],
                                          config['redis']['generating_queue_table_keys']['video'], s3)

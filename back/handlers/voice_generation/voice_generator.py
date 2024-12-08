@@ -21,6 +21,7 @@ class VoiceGenerator(Generator):
             'voice_changer_request_channel': voice_changer_request_channel,
             'voice_changer_response_channel' : voice_changer_response_channel
         }
+        
         self.generation_requests : list[VoiceGeneration] = []
         self.__lock = threading.Lock()
         super().__init__(redis_storage, generation_config, table, queue_name, VoiceGenerator.__max_threads)
@@ -29,6 +30,7 @@ class VoiceGenerator(Generator):
     
     def _start_generating(self, message):
         self.logger.info("Starting voice generation for message: %s", message)
+        
         try:
             new_generation = VoiceGeneration(self, json.loads(message))
             with self.__lock:
@@ -36,7 +38,9 @@ class VoiceGenerator(Generator):
                                             if g.status not in (VoiceGenerationStatus.COMPLETED, VoiceGenerationStatus.FAILED)]
                 self.generation_requests.append(new_generation)
                 new_generation.start()
+        
         except json.JSONDecodeError as e:
             self.logger.error("Failed to decode JSON message: %s", e)
+        
         except Exception as e:
             self.logger.error("An error occurred while starting voice generation: %s", e)

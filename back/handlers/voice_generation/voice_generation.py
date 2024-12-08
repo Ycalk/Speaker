@@ -14,17 +14,7 @@ class _PromptGenerator:
                 "containerAudioType": "WAV"
             }
         },
-        "hints": [
-            {
-                "voice": ""
-            },
-            {
-                "role": ""
-            },
-            {
-                "speed": ""
-            }
-        ],
+        "hints": [{"voice": ""}, {"role": ""}, {"speed": ""}],
         "loudnessNormalizationType": "LUFS"
     }
     @staticmethod
@@ -89,7 +79,6 @@ class VoiceGeneration:
             if response.status_code == 200:
                 self.__status = VoiceGenerationStatus.VOICE_CHANGE
                 audio_data = response.json()['result']['audioChunk']['data']
-                
                 self.logger.info("TTS generation successful for request: %s", 
                                  {k: v for k, v in self.request.items() if k != 'audio'})
                 self.request['tts_generated'] = datetime.datetime.now().isoformat()
@@ -102,14 +91,17 @@ class VoiceGeneration:
                 self.__status = VoiceGenerationStatus.FAILED
                 self.logger.error("Voice generation failed with status code: %d, response: %s", response.status_code, response.text)
                 self.request['error'] = f"Voice generation failed with status code: {response.status_code}"
+        
         except requests.RequestException as e:
             self.__status = VoiceGenerationStatus.FAILED
             self.logger.error("An error occurred while making the tts request: %s", e)
             self.request['error'] = f"An error occurred while making the tts request: {str(e)}"
+        
         except Exception as e:
             self.__status = VoiceGenerationStatus.FAILED
             self.logger.error("An error occurred: %s", e)
             self.request['error'] = f"An error occurred: {str(e)}"
+        
         finally:
             self.redis.publish(self.return_voice_channel, json.dumps(self.request))
             self.logger.info("Published request to return voice channel: %s", self.return_voice_channel)
@@ -117,12 +109,15 @@ class VoiceGeneration:
     def voice_change(self, audio_data):
         try:
             self.logger.info("Changing voice for request: %s", {k: v for k, v in self.request.items() if k != 'audio'})
+            
             self.redis.publish(self.vc_request, json.dumps({"request_id": self.request['id'], 
                                                             "audio": audio_data, 
                                                             'celebrity_code': VoiceGeneration.__celebrity_to_model[self.request['celebrity_code']]}))
+            
             pubsub = self.redis.pubsub()
             pubsub.subscribe(self.vc_response)
             response = None
+            
             for message in pubsub.listen():
                 if message['type'] == 'message':
                     response = json.loads(message['data'])
@@ -136,11 +131,13 @@ class VoiceGeneration:
                 self.request['voice_changed'] = datetime.datetime.now().isoformat()
                 self.request['audio'] = response['audio']
                 return True
+            
             else:
                 self.__status = VoiceGenerationStatus.FAILED
                 self.logger.error("Voice change failed for request: %s", 
                                   {k: v for k, v in self.request.items() if k != 'audio'})
                 return False
+        
         except Exception as e:
             self.__status = VoiceGenerationStatus.FAILED
             self.logger.error("An error occurred: %s", e)
