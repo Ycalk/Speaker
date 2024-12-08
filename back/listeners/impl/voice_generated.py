@@ -1,5 +1,6 @@
 import base64
 import io
+import json
 import logging
 import os
 from listeners.base import Listener
@@ -15,6 +16,7 @@ class VoiceGeneratedListener (Listener):
         logging.basicConfig(level=logging.INFO)
         self.s3 = s3
         self.logger = logging.getLogger(__name__)
+        self.queue_name = queue_name
         self.audio_temp = os.getenv('audio_data_temp')
         
         os.makedirs(self.audio_temp, exist_ok=True)
@@ -52,5 +54,6 @@ class VoiceGeneratedListener (Listener):
                 self.upload_audio(audio_path, data['celebrity_code'], data['user_name'])
                 self.logger.info("Audio was upload: %s", data)
                 os.remove(audio_path)
+            await self._redis.rpush(self.queue_name, json.dumps(data))
         except Exception as e:
             self.logger.error("An error occurred while handling the message in voice_generated_queue: %s", e)
