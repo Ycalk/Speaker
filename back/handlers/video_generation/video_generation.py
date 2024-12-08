@@ -1,10 +1,12 @@
 import enum
+import json
 import logging
 import datetime
 import os
 import time
-
+import numpy as np
 import requests
+from moviepy.editor import VideoFileClip, AudioFileClip, concatenate_videoclips
 
 from handlers.generator import Generator
 
@@ -46,6 +48,7 @@ class VideoGeneration:
         self.__status = VideoGenerationStatus.CREATED
         self.request = request
         self.redis = g.redis
+        self.return_video_channel = g.generation_config['return_video_channel']
         
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
@@ -80,15 +83,34 @@ class VideoGeneration:
                 time.sleep(3)
             video_url = response_status.json()['outputUrl']
             self.logger.info('Lip sync created successfully. Saving ...')
-            with open(f"{os.getenv('video_data_temp')}/{self.request['id']}.mp4", "wb") as f:
+            save_path = f"{os.getenv('video_data_temp')}/{self.request['id']}_lp.mp4"
+            with open(save_path, "wb") as f:
                 response = requests.get(video_url)
                 f.write(response.content)     
-            return True
+            return save_path
         except Exception as e:
             self.logger.error("An error occurred while creating lip sync: %s", e)
-            return False
-        
+            return 
     
+    def normalize_audio(self, video1 : VideoFileClip, video2 : VideoFileClip):
+        short_audio1 = video1.set_duration(2).audio
+        short_audio2 = video2.set_duration(2).audio
+        
+        audio1_rms = np.sqrt(np.mean(short_audio1.to_soundarray(fps=22050)**2))
+        audio2_rms = np.sqrt(np.mean(short_audio2.to_soundarray(fps=22050)**2))
+        target_rms = audio1_rms
+        return (video1.set_audio(video1.audio.volumex(target_rms / audio1_rms)),
+                video2.set_audio(video2.audio.volumex(target_rms / audio2_rms)))
+
+    def concatenate_videos(self, video1_path, video2_path, output_path):
+        video1 = VideoFileClip(video1_path)
+        video2 = VideoFileClip(video2_path)
+
+        video1, video2 = self.normalize_audio(video1, video2)
+        
+        final_video = concatenate_videoclips([video1, video2], method="compose")
+        final_video.write_videofile(output_path, codec="libx264", audio_codec="aac")
+        
     @property
     def status(self):
         return self.__status
@@ -96,5 +118,16 @@ class VideoGeneration:
     def start(self):
         self.request['video_generation_start'] = datetime.datetime.now().isoformat()
         self.logger.info("Starting video generation for request: %s", self.request)
-        if self.create_lip_sync():
+        lip_sync_path = self.create_lip_sync()
+        if lip_sync_path:
             self.__status = VideoGenerationStatus.LIP_SYNC_GENERATED
+            self.logger.info("Lip sync created successfully for request: %s", self.request)
+            self.logger.info("Concatenating videos ...")
+            final_video_path = f"{os.getenv('video_data_temp')}/{self.request['id']}_final.mp4"
+            self.concatenate_videos(lip_sync_path, 
+                                    f"handlers/video_generation/data/{self.request['celebrity_code'].replace('_', '/')}/part2.mp4",
+                                    final_video_path)
+            self.request['video_generated'] = datetime.datetime.now().isoformat()
+            self.__status = VideoGenerationStatus.COMPLETED
+            self.request['video'] = final_video_path
+            self.redis.publish(self.return_video_channel, json.dumps(self.request))
