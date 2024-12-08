@@ -2,6 +2,7 @@ import atexit
 import json
 import logging
 import multiprocessing
+from handlers.video_generation.video_generator import VideoGenerator
 from handlers.voice_generation.voice_generator import VoiceGenerator
 from listeners.listener import start_listeners
 from app import main as start_app
@@ -23,7 +24,14 @@ def start_voice_generator(redis_storage, table, queue_name, tts_model_url, api_k
     )
     voice_generator.start_listening()
 
-
+def start_video_generator(redis_storage, table, queue_name, video_generated_channel):
+    video_generator = VideoGenerator(
+        redis_storage=redis_storage,
+        table=table,
+        queue_name=queue_name,
+        return_video_channel=video_generated_channel
+    )
+    video_generator.start_listening()
 
 def exit_handler(process):
     if process.is_alive():
@@ -58,6 +66,13 @@ if __name__ == '__main__':
         )
         atexit.register(exit_handler, voice_generator_process)
         
+        video_generator_process = multiprocessing.Process(
+            target=start_video_generator,
+            args=(redis_storage, table, json_file['redis']['generating_queue_table_keys']['video'],
+                  json_file['redis']['channels']['video_generated'])
+        )
+        atexit.register(exit_handler, video_generator_process)
+        
                                          
     app = multiprocessing.Process(target=start_app)
     atexit.register(exit_handler, app)
@@ -65,6 +80,8 @@ if __name__ == '__main__':
     listeners.start()
     app.start()
     voice_generator_process.start()
+    video_generator_process.start()
     listeners.join()
     app.join()
     voice_generator_process.join()
+    video_generator_process.join()
