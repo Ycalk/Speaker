@@ -13,7 +13,8 @@
             "to_generate": "queue",
             "voice_generated": "voice_generated",
             "video_generated": "video_generated",
-            "generated": "generated"
+            "generated": "generated",
+            "notification": "notification"
         }
     },
 

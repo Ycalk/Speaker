@@ -10,14 +10,15 @@ from handlers.video_generation.video_generation import VideoGeneration, VideoGen
 class VideoGenerator(Generator):
     __max_threads = 10
     
-    def __init__(self, redis_storage, table: int, queue_name: str, return_video_channel: str):
+    def __init__(self, redis_storage, table: int, queue_name: str, return_video_channel: str,
+                 notification_channel: str):
         logging.basicConfig(level=logging.INFO)
             
         self.generation_requests : list[VideoGeneration] = []
         self.__lock = threading.Lock()
         os.makedirs(os.getenv('video_data_temp'), exist_ok=True)
         super().__init__(redis_storage, {"return_video_channel" : return_video_channel}, 
-                         table, queue_name, VideoGenerator.__max_threads)
+                         table, queue_name, VideoGenerator.__max_threads, notification_channel)
         
         self.logger = logging.getLogger(__name__)
     

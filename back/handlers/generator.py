@@ -2,6 +2,24 @@ import logging
 import time
 import redis
 import threading
+import enum
+
+class Notification(enum.Enum):
+    pass
+    
+class Update(Notification):
+    GENERATION_STARTED = 0
+    TTS_GENERATED = 0
+    VOICE_GENERATED = 0
+    LIP_SYNC_GENERATED = 0
+    VIDEO_CONCATENATED = 0
+
+class Error(Notification):
+    CANNOT_START = 0
+    TTS_FAILED = 0
+    VOICE_FAILED = 0
+    LIP_SYNC_FAILED = 0
+    VIDEO_CONCATENATION_FAILED = 0
 
 class Generator:
     @property
@@ -13,17 +31,26 @@ class Generator:
         return self.__redis
     
     def __init__(self, redis_storage, generation_config : dict, 
-                 table: int, queue_name: str, max_threads: int):
+                 table: int, queue_name: str, max_threads: int, notification_channel : str):
         self.__redis = redis.from_url(redis_storage, db=table)
         self.__queue_name = queue_name
         self.__generation_config = generation_config
         self.__max_threads = max_threads
         self.__threads : list[threading.Thread] = []
         self.__lock = threading.Lock()
+        self.__notification_channel = notification_channel
         
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
+    def send_notification(self, notification: Notification, user_id, app_type):
+        message = {
+            "notification": str(notification),
+            "user_id": user_id,
+            "app_type": app_type
+        }
+        self.__redis.publish(self.__notification_channel, message)
+    
     def start_listening(self):
         self.logger.info("Started listening to the queue: %s", self.__queue_name)
         while True:

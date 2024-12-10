@@ -8,6 +8,7 @@ import requests
 
 from handlers.generator import Generator
 from handlers.video_generation.video_processor import VideoProcessor
+from handlers.generator import Update, Error
 
 class RequestGenerator:
     """Class to generate requests for lip sync API."""
@@ -41,7 +42,7 @@ class VideoGeneration:
         self.request = request
         self.redis = generator.redis
         self.return_video_channel = generator.generation_config['return_video_channel']
-
+        self.g = generator
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
@@ -98,6 +99,8 @@ class VideoGeneration:
 
         except Exception as e:
             self.logger.error("Error during lip sync creation: %s.\nResponse was %s", e, response)
+            self.g.send_notification(Error.LIP_SYNC_FAILED,
+                                     self.request['user_id'], self.request['app_type'])
             return None
 
     def start(self):
@@ -107,6 +110,8 @@ class VideoGeneration:
 
         lip_sync_path = self.create_lip_sync()
         if lip_sync_path:
+            self.g.send_notification(Update.LIP_SYNC_GENERATED,
+                                     self.request['user_id'], self.request['app_type'])
             self.status = VideoGenerationStatus.LIP_SYNC_GENERATED
             self.logger.info("Lip sync created for request: %s", self.request)
 
@@ -114,12 +119,19 @@ class VideoGeneration:
             part2_path = os.path.join("handlers/video_generation/data", 
                                       self.request['celebrity_code'].replace('_', '/'), "part2.mp4")
 
-            processor = VideoProcessor()
-            processor.concatenate_videos(lip_sync_path, part2_path, final_video_path)
-            os.remove(lip_sync_path)
-            self.request['video_generated'] = datetime.datetime.now().isoformat()
-            self.status = VideoGenerationStatus.COMPLETED
-            self.request['video'] = final_video_path
+            try:
+                processor = VideoProcessor()
+                processor.concatenate_videos(lip_sync_path, part2_path, final_video_path)
+                os.remove(lip_sync_path)
+                self.request['video_generated'] = datetime.datetime.now().isoformat()
+                self.status = VideoGenerationStatus.COMPLETED
+                self.request['video'] = final_video_path
 
-            self.redis.publish(self.return_video_channel, json.dumps(self.request))
-            self.logger.info("Video generation completed and published.")
+                self.redis.publish(self.return_video_channel, json.dumps(self.request))
+                self.logger.info("Video generation completed and published.")
+                self.g.send_notification(Update.VIDEO_CONCATENATED,
+                                         self.request['user_id'], self.request['app_type'])
+            except Exception as e:
+                self.logger.error("Error during video concatenation: %s", e)
+                self.g.send_notification(Error.VIDEO_CONCATENATION_FAILED,
+                                         self.request['user_id'], self.request['app_type'])

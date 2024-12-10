@@ -7,6 +7,7 @@ import requests
 import os
 from handlers.generator import Generator
 from pydub import AudioSegment
+from handlers.generator import Update, Error
 
 class _PromptGenerator:
     default_prompt = {
@@ -52,6 +53,7 @@ class VoiceGeneration:
         self.api_key = g.generation_config['api_key']
         self.folder_id = g.generation_config['folder_id']
         self.redis = g.redis
+        self.g = g
         self.return_voice_channel = g.generation_config['return_voice_channel']
         self.vc_request = g.generation_config['voice_changer_request_channel']
         self.vc_response = g.generation_config['voice_changer_response_channel']
@@ -86,6 +88,8 @@ class VoiceGeneration:
         return res
     
     def start(self):
+        self.g.send_notification(Update.GENERATION_STARTED,
+                                 self.request['user_id'], self.request['app_type'])
         self.__status = VoiceGenerationStatus.GENERATING_VOICE
         self.logger.info("Starting voice generation for request: %s", self.request)
         
@@ -103,15 +107,27 @@ class VoiceGeneration:
                 self.request['tts_generated'] = datetime.datetime.now().isoformat()
                 
                 audio_data = self.add_silence(audio_data)
-                
+                self.logger.info("Added silence to audio data for request: %s", 
+                                 {k: v for k, v in self.request.items() if k != 'audio'})
+                self.g.send_notification(Update.TTS_GENERATED, 
+                                         self.request['user_id'], self.request['app_type'])
                 res = self.voice_change(audio_data)
                 if not res:
                     self.__status = VoiceGenerationStatus.FAILED
                     self.request['error'] = "Voice change failed"
+                    self.g.send_notification(Error.VOICE_FAILED,
+                                             self.request['user_id'], self.request['app_type'])
+                else:
+                    self.__status = VoiceGenerationStatus.COMPLETED
+                    self.request['voice_generated'] = datetime.datetime.now().isoformat()
+                    self.g.send_notification(Update.VOICE_GENERATED,
+                                             self.request['user_id'], self.request['app_type'])
             else:
                 self.__status = VoiceGenerationStatus.FAILED
                 self.logger.error("Voice generation failed with status code: %d, response: %s", response.status_code, response.text)
                 self.request['error'] = f"Voice generation failed with status code: {response.status_code}"
+                self.g.send_notification(Error.TTS_FAILED,
+                                         self.request['user_id'], self.request['app_type'])
         
         except requests.RequestException as e:
             self.__status = VoiceGenerationStatus.FAILED

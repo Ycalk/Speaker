@@ -1,6 +1,6 @@
 import logging
 import threading
-from handlers.generator import Generator
+from handlers.generator import Error, Generator
 import json
 
 from handlers.voice_generation.voice_generation import VoiceGeneration, VoiceGenerationStatus
@@ -10,7 +10,8 @@ class VoiceGenerator(Generator):
     
     def __init__(self, redis_storage, table: int, queue_name: str, tts_model_url: str, 
                  api_key: str, folder_id: str, return_voice_channel: str, 
-                 voice_changer_request_channel: str, voice_changer_response_channel: str):
+                 voice_changer_request_channel: str, voice_changer_response_channel: str,
+                 notification_channel: str):
         logging.basicConfig(level=logging.INFO)
         
         generation_config = {
@@ -24,7 +25,8 @@ class VoiceGenerator(Generator):
         
         self.generation_requests : list[VoiceGeneration] = []
         self.__lock = threading.Lock()
-        super().__init__(redis_storage, generation_config, table, queue_name, VoiceGenerator.__max_threads)
+        super().__init__(redis_storage, generation_config, table, queue_name, VoiceGenerator.__max_threads,
+                         notification_channel)
         
         self.logger = logging.getLogger(__name__)
     
@@ -43,4 +45,6 @@ class VoiceGenerator(Generator):
             self.logger.error("Failed to decode JSON message: %s", e)
         
         except Exception as e:
+            data = json.loads(message)
+            super().send_notification(Error.CANNOT_START, data['user_id'], data['app_type'])
             self.logger.error("An error occurred while starting voice generation: %s", e)
