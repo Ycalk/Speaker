@@ -4,11 +4,10 @@ import logging
 import datetime
 import os
 import time
-import numpy as np
 import requests
-from moviepy.editor import VideoFileClip, concatenate_videoclips
 
 from handlers.generator import Generator
+from handlers.video_generation.video_processor import VideoProcessor
 
 class RequestGenerator:
     """Class to generate requests for lip sync API."""
@@ -98,31 +97,8 @@ class VideoGeneration:
             return save_path
 
         except Exception as e:
-            self.logger.error("Error during lip sync creation: %s", e)
+            self.logger.error("Error during lip sync creation: %s.\nResponse was %s", e, response)
             return None
-
-    def normalize_audio(self, video1: VideoFileClip, video2: VideoFileClip):
-        """Normalizes audio levels between two video clips."""
-        def calculate_rms(audio_clip):
-            return np.sqrt(np.mean(audio_clip.to_soundarray(fps=22050) ** 2))
-
-        audio1_rms = calculate_rms(video1.set_duration(2).audio)
-        audio2_rms = calculate_rms(video2.set_duration(2).audio)
-        target_rms = audio1_rms
-
-        return (
-            video1.set_audio(video1.audio.volumex(target_rms / audio1_rms)),
-            video2.set_audio(video2.audio.volumex(target_rms / audio2_rms))
-        )
-
-    def concatenate_videos(self, video1_path: str, video2_path: str, output_path: str):
-        """Concatenates two video clips and saves the final output."""
-        video1 = VideoFileClip(video1_path)
-        video2 = VideoFileClip(video2_path)
-
-        video1, video2 = self.normalize_audio(video1, video2)
-        final_video = concatenate_videoclips([video1, video2], method="compose")
-        final_video.write_videofile(output_path, codec="libx264", audio_codec="aac")
 
     def start(self):
         """Starts the video generation process."""
@@ -138,8 +114,9 @@ class VideoGeneration:
             part2_path = os.path.join("handlers/video_generation/data", 
                                       self.request['celebrity_code'].replace('_', '/'), "part2.mp4")
 
-            self.concatenate_videos(lip_sync_path, part2_path, final_video_path)
-
+            processor = VideoProcessor()
+            processor.concatenate_videos(lip_sync_path, part2_path, final_video_path)
+            os.remove(lip_sync_path)
             self.request['video_generated'] = datetime.datetime.now().isoformat()
             self.status = VideoGenerationStatus.COMPLETED
             self.request['video'] = final_video_path

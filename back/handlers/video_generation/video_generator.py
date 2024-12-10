@@ -33,4 +33,4 @@ class VideoGenerator(Generator):
         except json.JSONDecodeError as e:
             self.logger.error("Failed to decode JSON message: %s", e)
         except Exception as e:
-            self.logger.error("An error occurred while starting voice generation: %s", e)
+            self.logger.error("An error occurred while video generating: %s", e)
