@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 import redis
@@ -9,17 +10,17 @@ class Notification(enum.Enum):
     
 class Update(Notification):
     GENERATION_STARTED = 0
-    TTS_GENERATED = 0
-    VOICE_GENERATED = 0
-    LIP_SYNC_GENERATED = 0
-    VIDEO_CONCATENATED = 0
+    TTS_GENERATED = 1
+    VOICE_GENERATED = 2
+    LIP_SYNC_GENERATED = 3
+    VIDEO_CONCATENATED = 4
 
 class Error(Notification):
     CANNOT_START = 0
-    TTS_FAILED = 0
-    VOICE_FAILED = 0
-    LIP_SYNC_FAILED = 0
-    VIDEO_CONCATENATION_FAILED = 0
+    TTS_FAILED = 1
+    VOICE_FAILED = 2
+    LIP_SYNC_FAILED = 3
+    VIDEO_CONCATENATION_FAILED = 4
 
 class Generator:
     @property
@@ -44,12 +45,13 @@ class Generator:
         self.logger = logging.getLogger(__name__)
 
     def send_notification(self, notification: Notification, user_id, app_type):
+        print("Sending notification: ", notification)
         message = {
             "notification": str(notification),
             "user_id": user_id,
             "app_type": app_type
         }
-        self.__redis.publish(self.__notification_channel, message)
+        self.__redis.publish(self.__notification_channel, json.dumps(message))
     
     def start_listening(self):
         self.logger.info("Started listening to the queue: %s", self.__queue_name)

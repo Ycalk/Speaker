@@ -15,8 +15,9 @@ class VoiceGeneratedListener (Listener):
         super().__init__(storage, generating_queue_table, channel)
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
-        
+        self.storage_url = os.getenv('DATA_STORAGE')
         self.s3 = s3
+        self.generated_bucket = os.getenv('GENERATED_BUCKET')
         self.queue_name = queue_name
         self.audio_temp = os.getenv('audio_data_temp')
         
@@ -34,10 +35,15 @@ class VoiceGeneratedListener (Listener):
     def upload_audio(self, audio_path, celebrity_code, name):
         try:
             short_code = celebrity_code.split('_')[0]
-            self.s3.upload_file(audio_path, os.getenv('GENERATED_BUCKET'), f'voice/{short_code}/{name}.wav')
+            self.s3.upload_file(audio_path, self.generated_bucket, f'voice/{short_code}/{name}.wav')
         
         except Exception as e:
             self.logger.error("An error occurred while uploading the audio: %s", e)
+    
+    def _get_uploaded_audio_url(self, data) -> str:
+        short_code = data['celebrity_code'].split('_')[0]
+        name = data['user_name']
+        return f'{self.storage_url}/{self.generated_bucket}/voice/{short_code}/{name}.wav'
     
     async def handler(self, data : dict):
         if 'audio' not in data:
@@ -49,14 +55,16 @@ class VoiceGeneratedListener (Listener):
         
         try:
             if data['audio'] == 'generated':
-                data['audio'] = 'cloud'
+                short_code = data['celebrity_code'].split('_')[0]
+                name = data['user_name']
+                data['audio'] = self._get_uploaded_audio_url(data)
                 self.logger.info("Voice already generated for user: %s", data['user_name'])
             
             else:
                 self.logger.info("Received audio data in voice_generated_queue")
                 audio_path = self.save_audio(data['audio'], data['id'])
-                data['audio'] = 'cloud'
                 self.upload_audio(audio_path, data['celebrity_code'], data['user_name'])
+                data['audio'] = self._get_uploaded_audio_url(data)
                 self.logger.info("Audio was upload: %s", data)
                 os.remove(audio_path)
             
