@@ -34,13 +34,21 @@ class Connector:
             self.__generation_queue = aioredis.from_url(f"{storage}", db=table_data["generating_queue_table"])
         
         async def create_generation_request(self, user_id: int, celebrity_code: str, user_name: str) -> None:
+            """
+            Creates a generation request
+
+            Args:
+                user_id (int): User id (eg telegram id)
+                celebrity_code (str): Celebrity code (eg vidos_good)
+                user_name (str): The name with which the greeting will be generated
+            """
             data = json.dumps({
                 "app_type": self.__parent.app_type.value,
                 "user_id": user_id,
                 "celebrity_code": celebrity_code,
                 "user_name": user_name
             })
-            await self.__generation_queue.rpush("queue", data)
+            await self.__generation_queue.publish("queue", data)
     
     def __init__(self, app_type:AppType, server: str, port: str,
                  redis_storage: str):
@@ -50,6 +58,27 @@ class Connector:
         self.__redis = self.Redis(self, redis_storage, self.get_config()["redis"])
     
     def get_config(self) -> dict:
+        """
+        Fetches configuration data from the server.
+
+        Raises:
+            requests.HTTPError: If the server returns an error response (e.g., 4xx or 5xx status codes).
+
+        Returns:
+            dict: A dictionary containing the configuration data, structured as follows:
+                {
+                    "redis": {
+                        "user_data_table": int, 
+                        "generating_queue_table": int, 
+                        "fsm_storage_table": int  
+                    },
+                    "MAX_NAME_LENGTH": int  
+                }
+
+        Example:
+            config = get_config_from_server()
+            print(config['MAX_NAME_LENGTH'])
+        """
         response = requests.get(f"{self.__server_address}/config")
         if response.status_code == 200:
             return response.json()
@@ -57,13 +86,55 @@ class Connector:
             raise requests.HTTPError(response.text)
     
     async def get_celebrities(self) -> list[dict]:
+        """
+        Fetches a list of celebrities from the server.
+
+        Raises:
+            aiohttp.ClientResponseError: If the server returns an error response
+            
+        Returns:
+            list[dict]: A list of dictionaries representing celebrities. Each dictionary
+            has the following structure:
+            [
+                {
+                    'name': str,  # The name of the celebrity
+                    'code': str   # A unique code associated with the celebrity
+                },
+                ...
+            ]
+
+        Example:
+            celebrities = await get_celebrities()
+            for celeb in celebrities:
+                print(f"Name: {celeb['name']}, Code: {celeb['code']}")
+        """
         async with aiohttp.ClientSession() as session:
             async with session.get(f"{self.__server_address}/celebrities") as response:
                 if response.status != 200:
-                    raise aiohttp.ClientResponseError(response)
+                    raise aiohttp.ClientResponseError(
+                        request_info=response.request_info,
+                        status=response.status,
+                        message=f"Error {response.status}: {response.reason}",
+                        history=response.history,
+                    )
                 return await response.json()
 
     async def validate_name(self, name: str) -> bool:
+        """
+        Validates a given name by sending it to the server for verification.
+
+        Parameters:
+            name (str): The name to be validated. It should be a non-empty string.
+
+        Raises:
+            aiohttp.ClientResponseError: If the server returns an error response
+            (e.g., status code other than 200 or 400).
+
+        Returns:
+            bool: 
+                - True if the name is valid (server responds with status 200).
+                - False if the name is invalid (server responds with status 400).
+        """
         async with aiohttp.ClientSession() as session:
             async with session.post(f'{self.__server_address}/validate', json={"name": name}) as response:
                 if response.status == 200:
@@ -71,4 +142,9 @@ class Connector:
                 elif response.status == 400:
                     return False
                 else:
-                    raise aiohttp.ClientResponseError(response)
+                    raise aiohttp.ClientResponseError(
+                        request_info=response.request_info,
+                        status=response.status,
+                        message=f"Error {response.status}: {response.reason}",
+                        history=response.history,
+                    )
