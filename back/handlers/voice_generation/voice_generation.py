@@ -1,10 +1,12 @@
+import base64
 import enum
 import json
 import logging
 import datetime
 import requests
-
+import os
 from handlers.generator import Generator
+from pydub import AudioSegment
 
 class _PromptGenerator:
     default_prompt = {
@@ -66,6 +68,23 @@ class VoiceGeneration:
     def status(self):
         return self.__status
     
+    def add_silence(self, audio_str):
+        path = f"{os.getenv('audio_data_temp')}/{self.request['id']}.wav"
+        with open(path, "wb") as audio_file:
+            audio_file.write(base64.b64decode(audio_str))
+        audio = AudioSegment.from_file(path)
+        audio_len = len(audio)
+        if (audio_len < 1100):
+            silence = AudioSegment.silent(duration=1100 - audio_len)
+            audio = silence + audio
+        save_path = f"{os.getenv('audio_data_temp')}/{self.request['id']}_updated.wav"
+        audio.export(save_path, format="wav")
+        with open(save_path, "rb") as audio_file:
+            res = base64.b64encode(audio_file.read()).decode('utf-8')
+        os.remove(save_path)
+        os.remove(path)
+        return res
+    
     def start(self):
         self.__status = VoiceGenerationStatus.GENERATING_VOICE
         self.logger.info("Starting voice generation for request: %s", self.request)
@@ -82,6 +101,8 @@ class VoiceGeneration:
                 self.logger.info("TTS generation successful for request: %s", 
                                  {k: v for k, v in self.request.items() if k != 'audio'})
                 self.request['tts_generated'] = datetime.datetime.now().isoformat()
+                
+                audio_data = self.add_silence(audio_data)
                 
                 res = self.voice_change(audio_data)
                 if not res:
