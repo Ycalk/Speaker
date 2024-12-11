@@ -13,21 +13,22 @@ async def _start(redis_storage, config):
     )
     s3 = session.client(service_name='s3', endpoint_url='https://storage.yandexcloud.net')
     
-    gen_request_listener = GeneratingRequestListener(redis_storage, int(config['redis']['generating_queue_table']),
+    generation_request_listener = GeneratingRequestListener(redis_storage, int(config['redis']['generating_queue_table']),
                                          config['redis']['channels']['to_generate'],
                                          config['redis']['generating_queue_table_keys']['voice'], s3, 
                                          config['redis']['channels']['voice_generated'])
     
     voice_generated_listener = VoiceGeneratedListener(redis_storage, int(config['redis']['generating_queue_table']),
                                          config['redis']['channels']['voice_generated'],
-                                         config['redis']['generating_queue_table_keys']['video'], s3)
+                                         config['redis']['generating_queue_table_keys']['video'], s3,
+                                         config['redis']['channels']['video_generated'])
     
     video_generated_listener = VideoGeneratedListener(redis_storage, int(config['redis']['generating_queue_table']),
                                             config['redis']['channels']['video_generated'], s3,
                                             config['redis']['channels']['generated'])
     
     await asyncio.gather(
-        gen_request_listener.listen(),
+        generation_request_listener.listen(),
         voice_generated_listener.listen(),
         video_generated_listener.listen()
     )

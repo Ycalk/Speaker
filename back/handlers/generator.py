@@ -45,7 +45,6 @@ class Generator:
         self.logger = logging.getLogger(__name__)
 
     def send_notification(self, notification: Notification, user_id, app_type):
-        print("Sending notification: ", notification)
         message = {
             "notification": str(notification),
             "user_id": user_id,

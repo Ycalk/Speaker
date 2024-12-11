@@ -1,6 +1,6 @@
 from quart import Quart, jsonify, request
 import json
-
+import re
 app = Quart(__name__)
 
 @app.route('/config', methods=['GET'])
@@ -33,7 +33,7 @@ async def validate():
 
 # TODO request to gpt
 async def validate_name(name: str) -> bool:
-    return name.isalpha() and len(name) > 3
+    return name.isalpha() and len(name) > 3 and bool(re.fullmatch(r'[а-яА-ЯёЁ]+', name))
 
 def main():
     app.run(host='localhost', port=5000)

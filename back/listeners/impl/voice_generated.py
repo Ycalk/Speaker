@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import io
 import json
@@ -10,7 +11,7 @@ from scipy.io.wavfile import write, read
 class VoiceGeneratedListener (Listener):
     
     def __init__(self, storage: str, generating_queue_table: int, channel:str, 
-                 queue_name: str, s3):
+                 queue_name: str, s3, video_generated_channel):
         
         super().__init__(storage, generating_queue_table, channel)
         logging.basicConfig(level=logging.INFO)
@@ -18,6 +19,7 @@ class VoiceGeneratedListener (Listener):
         self.storage_url = os.getenv('DATA_STORAGE')
         self.s3 = s3
         self.generated_bucket = os.getenv('GENERATED_BUCKET')
+        self.video_generated_channel = video_generated_channel
         self.queue_name = queue_name
         self.audio_temp = os.getenv('audio_data_temp')
         
@@ -45,6 +47,15 @@ class VoiceGeneratedListener (Listener):
         name = data['user_name']
         return f'{self.storage_url}/{self.generated_bucket}/voice/{short_code}/{name}.wav'
     
+    def check_if_video_generated(self, celebrity_code, name):
+        try:
+            path = f'video/{celebrity_code.replace("_", "/")}/{name}.mp4'
+            self.s3.head_object(Bucket=self.generated_bucket, 
+                                Key=path)
+            return True
+        except Exception as _:
+            return False
+    
     async def handler(self, data : dict):
         if 'audio' not in data:
             self.logger.error("No audio data in the message: %s", data)
@@ -55,8 +66,6 @@ class VoiceGeneratedListener (Listener):
         
         try:
             if data['audio'] == 'generated':
-                short_code = data['celebrity_code'].split('_')[0]
-                name = data['user_name']
                 data['audio'] = self._get_uploaded_audio_url(data)
                 self.logger.info("Voice already generated for user: %s", data['user_name'])
             
@@ -66,9 +75,16 @@ class VoiceGeneratedListener (Listener):
                 self.upload_audio(audio_path, data['celebrity_code'], data['user_name'])
                 data['audio'] = self._get_uploaded_audio_url(data)
                 self.logger.info("Audio was upload: %s", data)
+                self.logger.info("Sleeping for a while",)
+                await asyncio.sleep(5)
                 os.remove(audio_path)
-            
-            await self._redis.rpush(self.queue_name, json.dumps(data))
+                
+            if self.check_if_video_generated(data['celebrity_code'], data['user_name']):
+                self.logger.info("Video already generated for user: %s", data['user_name'])
+                data['video'] = 'generated'
+                await self._redis.publish(self.video_generated_channel, json.dumps(data))
+            else:
+                await self._redis.rpush(self.queue_name, json.dumps(data))
         
         except Exception as e:
             self.logger.error("An error occurred while handling the message in voice_generated_queue: %s", e)
