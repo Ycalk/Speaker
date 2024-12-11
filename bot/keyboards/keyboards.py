@@ -13,3 +13,11 @@ async def celebrities_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text=celebrity['name'], callback_data=celebrity['code'])] 
                   for celebrity in await connector.get_celebrities()])
+
+def behavior_keyboard() -> ReplyKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text='Хорошо', callback_data='good'), 
+             InlineKeyboardButton(text='Плохо', callback_data='bad')],
+        ],
+    )

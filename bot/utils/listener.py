@@ -69,7 +69,6 @@ class ListenerImpl(Listener):
         video = URLInputFile(data['video'])
         user_id = data['user_id']
         await self.__bot.send_video_note(user_id, video)
-        await self.__bot.send_message(user_id, "Your request was:\n\n" + str(data))
         await self.__clear_state(user_id)
     
     async def notification_handler(self, notification: NotificationModel):
