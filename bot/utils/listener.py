@@ -68,14 +68,21 @@ class ListenerImpl(Listener):
         await self.__redis_fsm.delete(f"fsm:{user_id}:{user_id}:state")
     
     
-    async def __send_congratulations(self, user_id, celebrity_code, user_name):
+    async def __send_congratulations(self, user_id, celebrity_code, user_name, gender):
+        ending = ""
+        if not gender or gender == "Gender.UNKNOWN":
+            ending = "(а)"
+        elif gender == "Gender.FEMALE":
+            ending = "а"
         if celebrity_code.startswith("vidos_good"):
             await self.__bot.send_message(user_id, 
-                                          self.texts['messages']['on_create_good_behavior'].format(name=user_name.capitalize()),
+                                          self.texts['messages']['on_create_good_behavior'].format(
+                                              name=user_name.capitalize(), ending=ending),
                                           reply_markup=main_keyboard())
         elif celebrity_code.startswith("vidos_bad"):
             await self.__bot.send_message(user_id, 
-                                          self.texts['messages']['on_create_bad_behavior'].format(name=user_name.capitalize()),
+                                          self.texts['messages']['on_create_bad_behavior'].format(
+                                              name=user_name.capitalize(), ending=ending),
                                           reply_markup=main_keyboard())
         else:
             await self.__bot.send_message(user_id, 

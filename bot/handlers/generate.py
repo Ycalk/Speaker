@@ -43,6 +43,7 @@ async def user_name(message: Message, state: FSMContext):
     user_data = await state.get_data()
     
     valid_name, gender = await connector.validate_name(message.text)
+    await state.update_data(gender=str(gender))
     if not valid_name:
         await message.answer(texts['messages']['incorrect_name'].format(symbols_count=constants['MAX_NAME_LENGTH']))
         return
@@ -52,14 +53,17 @@ async def user_name(message: Message, state: FSMContext):
         await message.answer(texts['messages']['generating'].format(user_name=message.text, 
                                                                 celebrity_name=user_data['celebrity']['name']))
         await state.set_state(GenerateState.generating)
-        await connector.redis.create_generation_request(message.from_user.id, user_data['celebrity']['code'], message.text)
+        await connector.redis.create_generation_request(
+            message.from_user.id, 
+            user_data['celebrity']['code'], 
+            message.text, str(gender))
     else:
-        gender_a = ""
+        ending = ""
         if gender == Gender.FEMALE:
-            gender_a = "а"
+            ending = "а"
         elif gender == Gender.UNKNOWN:
-            gender_a = "(а)"
-        await message.answer(texts['messages']['behavior'].format(gender_a=gender_a, name=message.text.capitalize()), reply_markup=behavior_keyboard(gender == Gender.MALE))
+            ending = "(а)"
+        await message.answer(texts['messages']['behavior'].format(ending=ending, name=message.text.capitalize()), reply_markup=behavior_keyboard())
         await state.set_state(GenerateState.behavior)
 
 
@@ -75,5 +79,5 @@ async def behavior(query: CallbackQuery, state: FSMContext):
     await connector.redis.create_generation_request(
         query.message.chat.id, 
         f"{user_data['celebrity']['code']}_{query.data}", 
-        user_data['name'],)
+        user_data['name'], user_data['gender'])
     

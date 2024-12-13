@@ -44,7 +44,11 @@ class GeneratingRequestListener (Listener):
             data['celebrity_code'] = random.choice(['vidos_good_v1', 'vidos_good_v2'])
         
         if data['celebrity_code'] == 'vidos_bad':
-            data['celebrity_code'] = random.choice(['vidos_bad_v1', 'vidos_bad_v2', 'vidos_bad_v3'])
+            available_codes = ['vidos_bad_v1', 'vidos_bad_v3']
+            print(data['gender'])
+            if data['gender'] == "Gender.MALE":
+                available_codes.append('vidos_bad_v2')
+            data['celebrity_code'] = random.choice(available_codes)
     
     async def handler(self, data : dict):
         self.logger.info("Received data: %s", data)

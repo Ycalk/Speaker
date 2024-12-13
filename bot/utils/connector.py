@@ -47,7 +47,9 @@ class Connector:
             self.__parent: Connector = parent
             self.__generation_queue = aioredis.from_url(f"{storage}", db=table_data["generating_queue_table"])
         
-        async def create_generation_request(self, user_id: int, celebrity_code: str, user_name: str) -> None:
+        async def create_generation_request(self, user_id: int, 
+                                            celebrity_code: str, user_name: str,
+                                            gender: str) -> None:
             """
             Creates a generation request
 
@@ -55,12 +57,14 @@ class Connector:
                 user_id (int): User id (eg telegram id)
                 celebrity_code (str): Celebrity code (eg vidos_good)
                 user_name (str): The name with which the greeting will be generated
+                gender (str): Name gender (Example: Gender.MALE / Gender.FEMALE)
             """
             data = json.dumps({
                 "app_type": self.__parent.app_type.value,
                 "user_id": user_id,
                 "celebrity_code": celebrity_code,
-                "user_name": user_name
+                "user_name": user_name,
+                "gender": gender
             })
             await self.__generation_queue.publish("queue", data)
     
@@ -145,9 +149,9 @@ class Connector:
             (e.g., status code other than 200 or 400).
 
         Returns:
-            bool: 
-                - True if the name is valid (server responds with status 200).
-                - False if the name is invalid (server responds with status 400).
+            tuple: A tuple containing:
+                - bool: True if the name is valid, False if the name is invalid.
+                - Gender: The gender associated with the name, as determined by the server.
         """
         async with aiohttp.ClientSession() as session:
             async with session.post(f'{self.__server_address}/validate', json={"name": name}) as response:
