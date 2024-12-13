@@ -17,6 +17,11 @@ class VoiceChanger:
             'model': 'Vidos.pth',
             'index_path': 'logs/Vidos/added_IVF216_Flat_nprobe_1_Vidos_v2.index',
             'pitch': -11
+        },
+        'burunov': {
+            'model': 'Burunov.pth',
+            'index_path': 'logs/Burunov/added_IVF772_Flat_nprobe_1_Burunov_v2.index',
+            'pitch': -11
         }
     }
 
