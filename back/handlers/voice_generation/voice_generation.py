@@ -42,7 +42,8 @@ class VoiceGeneration:
         "vidos_good_v2": "vidos_good_1",
         "vidos_bad_v1": "vidos_good_1",
         "vidos_bad_v2": "vidos_good_1",
-        "vidos_bad_v3": "vidos_good_1"
+        "vidos_bad_v3": "vidos_good_1",
+        "burunov" : "burunov",
     }
     
     

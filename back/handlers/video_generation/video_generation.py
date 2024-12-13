@@ -74,7 +74,7 @@ class VideoGeneration:
                 "Content-Type": "application/json"
             }
             api_url = os.getenv('SYNC_SO_API_URL')
-
+            self.logger.info("Sending request to lip sync API: %s", request)
             # Send initial POST request
             response = requests.post(api_url, json=request, headers=headers).json()
             request_id = response['id']
@@ -98,7 +98,8 @@ class VideoGeneration:
             return save_path
 
         except Exception as e:
-            self.logger.error("Error during lip sync creation: %s.\nResponse was %s", e, response)
+            self.logger.error("Error during lip sync creation: %s.\nResponse was %s\nRequest was: %s", 
+                              e, response, self.request)
             self.g.send_notification(Error.LIP_SYNC_FAILED,
                                      self.request['user_id'], self.request['app_type'])
             return None

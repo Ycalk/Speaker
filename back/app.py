@@ -1,7 +1,12 @@
+import aiohttp
 from quart import Quart, jsonify, request
 import json
 import re
+import os
+
 app = Quart(__name__)
+NAME_API_URL = os.getenv('NAME_API_URL')
+
 
 @app.route('/config', methods=['GET'])
 async def get_config():
@@ -25,15 +30,46 @@ async def get_celebrities():
 
 @app.route('/validate', methods=['POST'])
 async def validate():
-    data = await request.get_json()
-    if await validate_name(data.get('name')):
-        return jsonify({"message": "Validation successful"}), 200
-    else:
-        return jsonify({"error": "Validation failed"}), 400
-
+    name = (await request.get_json()).get('name')
+    is_name, gender = await validate_name(name)
+    return jsonify({"valid": is_name, "gender": gender}), 200
+    
 # TODO request to gpt
-async def validate_name(name: str) -> bool:
-    return name.isalpha() and len(name) > 3 and bool(re.fullmatch(r'[а-яА-ЯёЁ]+', name))
+async def validate_name(name: str) -> tuple[bool, str]:
+    def parse_match(data):
+        if data['confidence'] > 0.6:
+            gender = data['parsedPerson']['gender']
+            if gender['confidence'] > 0.6:
+                gender = gender['gender']
+            else:
+                gender = 'NEUTRAL'
+            return True, gender
+        return False, 'NEUTRAL'
+    
+    data = {
+        "inputPerson" : {
+            "type" : "NaturalInputPerson",
+            "personName" : {
+                "nameFields" : [{
+                    "string" : name,
+                    "fieldType" : "GIVENNAME"
+                }]
+            },
+        }
+    }
+    if name.isalpha() and bool(re.fullmatch(r'[а-яА-ЯёЁ]+', name)):
+        async with aiohttp.ClientSession(headers={"Content-Type": "application/json"}) as session:
+            async with session.post(NAME_API_URL, json=data) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    if 'bestMatch' in data:
+                        return parse_match(data['bestMatch'])
+                    for match in data['matches']:
+                        if match['confidence'] > 0.6:
+                            return parse_match(match)
+    return False, 'NEUTRAL'
+                
+        
 
 def main():
     app.run(host='localhost', port=5000)
