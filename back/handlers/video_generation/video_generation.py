@@ -13,7 +13,7 @@ from handlers.generator import Update, Error
 class RequestGenerator:
     """Class to generate requests for lip sync API."""
     DEFAULT_REQUEST = {
-        "model": "lipsync-1.7.1",
+        "model": "lipsync-1.8.0",
         "input": [
             {"type": "video", "url": ""},
             {"type": "audio", "url": ""}
