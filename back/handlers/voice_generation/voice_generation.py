@@ -157,7 +157,7 @@ class VoiceGeneration:
             
             self.redis.publish(self.vc_request, json.dumps({"request_id": self.request['id'], 
                                                             "audio": audio_data, 
-                                                            'celebrity_code': VoiceGeneration.__celebrity_to_model[self.request['celebrity_code']]}))
+                                                            "model": VoiceGeneration.__celebrity_to_model[self.request['celebrity_code']]}))
             
             pubsub = self.redis.pubsub()
             pubsub.subscribe(self.vc_response)
