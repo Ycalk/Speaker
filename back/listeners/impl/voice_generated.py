@@ -56,6 +56,9 @@ class VoiceGeneratedListener (Listener):
         except Exception as _:
             return False
     
+    def get_video_url(self, path_in_bucket) -> str:
+        return f'{self.storage_url}/{self.generated_bucket}/{path_in_bucket}'
+    
     async def handler(self, data : dict):
         if 'audio' not in data:
             self.logger.error("No audio data in the message: %s", data)
@@ -81,7 +84,8 @@ class VoiceGeneratedListener (Listener):
                 
             if self.check_if_video_generated(data['celebrity_code'], data['user_name']):
                 self.logger.info("Video already generated for user: %s", data['user_name'])
-                data['video'] = 'generated'
+                path = f'video/{data["celebrity_code"].replace("_", "/")}/{data["user_name"]}.mp4'
+                data['video'] = self.get_video_url(path)
                 await self._redis.publish(self.video_generated_channel, json.dumps(data))
             else:
                 await self._redis.rpush(self.queue_name, json.dumps(data))

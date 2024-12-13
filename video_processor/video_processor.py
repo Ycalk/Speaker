@@ -53,28 +53,31 @@ class Worker:
         listener = Worker(output_channel, redis_storage_url)
         listener.logger.info("Worker started")
         while True:
-            data = queue.get()
-            data = json.loads(data)
-            if data == "STOP":
-                break
-            listener.logger.info(f"Processing request: {data}")
-            request_id = data['id']
-            user_name = data['user_name']
-            celebrity_code = data['celebrity_code']
-            lip_sync_url = data['lip_sync_url']
-            
-            video1 = Video.from_url(lip_sync_url)
-            video2 = Video(get_video_path(celebrity_code))
-            output_path = f"temp/{request_id}_out.mp4"
-            
-            processor._concatenate_videos(video1, video2, output_path)
-            listener.logger.info(f"Video concatenated and saved to {output_path}")
-            path_in_bucket = listener.get_path_in_bucket(celebrity_code, user_name)
-            listener.upload(output_path, path_in_bucket)
-            listener.logger.info(f"Video uploaded to {listener.storage_url}/{listener.bucket_name}/{path_in_bucket}")
-            listener.notify(request_id, path_in_bucket)
-            os.remove(output_path)
-            os.remove(video1.video_path)
+            try:
+                data = queue.get()
+                data = json.loads(data)
+                if data == "STOP":
+                    break
+                listener.logger.info(f"Processing request: {data}")
+                request_id = data['id']
+                user_name = data['user_name']
+                celebrity_code = data['celebrity_code']
+                lip_sync_url = data['lip_sync_url']
+                
+                video1 = Video.from_url(lip_sync_url, f"temp/{request_id}_lip_sync.mp4")
+                video2 = Video(get_video_path(celebrity_code))
+                output_path = f"temp/{request_id}_out.mp4"
+                
+                processor._concatenate_videos(video1, video2, output_path)
+                listener.logger.info(f"Video concatenated and saved to {output_path}")
+                path_in_bucket = listener.get_path_in_bucket(celebrity_code, user_name)
+                listener.upload(output_path, path_in_bucket)
+                listener.logger.info(f"Video uploaded to {listener.storage_url}/{listener.bucket_name}/{path_in_bucket}")
+                listener.notify(request_id, path_in_bucket)
+                os.remove(output_path)
+                os.remove(video1.video_path)
+            except Exception as e:
+                listener.logger.error(f"Error processing request: {e}")
             
     def get_path_in_bucket(self, celebrity_code: str, user_name: str):
         return f'video/{celebrity_code.replace("_", "/")}/{user_name}.mp4'
@@ -84,7 +87,7 @@ class Worker:
     
     def notify(self, request_id: str, path_in_bucket: str):
         response = {
-            "request_id": request_id,
+            "id": request_id,
             "video_url": f"{self.storage_url}/{self.bucket_name}/{path_in_bucket}"
         }
         self.redis.publish(self.output_channel, json.dumps(response))

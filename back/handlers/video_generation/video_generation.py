@@ -7,7 +7,6 @@ import time
 import requests
 
 from handlers.generator import Generator
-from handlers.video_generation.video_processor import VideoProcessor
 from handlers.generator import Update, Error
 
 class RequestGenerator:
@@ -42,6 +41,8 @@ class VideoGeneration:
         self.request = request
         self.redis = generator.redis
         self.return_video_channel = generator.generation_config['return_video_channel']
+        self.processor_request_channel = generator.generation_config['video_processor_request_channel']
+        self.processor_response_channel = generator.generation_config['video_processor_response_channel']
         self.g = generator
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
@@ -63,7 +64,7 @@ class VideoGeneration:
         return self._get_storage_url('GENERATED_BUCKET', path)
 
     def create_lip_sync(self) -> str:
-        """Creates a lip sync video and saves it locally."""
+        """Creates a lip sync video and returns its url."""
         self.request['lip_sync_generation_start'] = datetime.datetime.now().isoformat()
         self.logger.info("Creating lip sync for request: %s", self.request)
 
@@ -89,13 +90,9 @@ class VideoGeneration:
 
             # Save the video locally
             video_url = response_status['outputUrl']
-            save_path = os.path.join(os.getenv('video_data_temp'), f"{self.request['id']}_lp.mp4")
-            with open(save_path, "wb") as f:
-                video_response = requests.get(video_url)
-                f.write(video_response.content)
 
-            self.logger.info('Lip sync created and saved to %s', save_path)
-            return save_path
+            self.logger.info('Lip sync created %s', video_url)
+            return video_url
 
         except Exception as e:
             self.logger.error("Error during lip sync creation: %s.\nResponse was %s\nRequest was: %s", 
@@ -109,21 +106,32 @@ class VideoGeneration:
         self.request['video_generation_start'] = datetime.datetime.now().isoformat()
         self.logger.info("Starting video generation for request: %s", self.request)
 
-        lip_sync_path = self.create_lip_sync()
-        if lip_sync_path:
+        lip_sync_url = self.create_lip_sync()
+        if lip_sync_url:
             self.g.send_notification(Update.LIP_SYNC_GENERATED,
                                      self.request['user_id'], self.request['app_type'])
             self.status = VideoGenerationStatus.LIP_SYNC_GENERATED
             self.logger.info("Lip sync created for request: %s", self.request)
 
-            final_video_path = os.path.join(os.getenv('video_data_temp'), f"{self.request['id']}_final.mp4")
-            part2_path = os.path.join("handlers/video_generation/data", 
-                                      self.request['celebrity_code'].replace('_', '/'), "part2.mp4")
-
             try:
-                processor = VideoProcessor()
-                processor.concatenate_videos(lip_sync_path, part2_path, final_video_path)
-                os.remove(lip_sync_path)
+                processor_request = {
+                    "lip_sync_url": lip_sync_url,
+                    "celebrity_code": self.request['celebrity_code'],
+                    "user_name": self.request['user_name'],
+                    "id": self.request['id']
+                }
+                self.logger.info("Sending request to video processor: %s", processor_request)
+                self.redis.publish(self.processor_request_channel, json.dumps(processor_request))
+                self.logger.info("Published request to video processor: %s", processor_request)
+                pubsub = self.redis.pubsub()
+                pubsub.subscribe(self.processor_response_channel)
+                self.logger.info("Subscribed to video processor response channel: %s", self.processor_response_channel)
+                for message in pubsub.listen():
+                    if message['type'] == 'message':
+                        response = json.loads(message['data'])
+                        if response['id'] == self.request['id']:
+                            break
+                final_video_path = response['video_url']
                 self.request['video_generated'] = datetime.datetime.now().isoformat()
                 self.status = VideoGenerationStatus.COMPLETED
                 self.request['video'] = final_video_path

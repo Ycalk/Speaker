@@ -17,11 +17,6 @@ class VideoGeneratedListener (Listener):
         self.s3 = s3
         self.generated_bucket = os.getenv('GENERATED_BUCKET')
         
-    
-    def get_video_url(self, path_in_bucket) -> str:
-        return f'{self.data_storage}/{self.generated_bucket}/{path_in_bucket}'
-        
-        
     async def handler(self, data : dict):
         self.logger.info("Received data: %s", data)
         try:
@@ -29,19 +24,6 @@ class VideoGeneratedListener (Listener):
                 self.logger.error("No video data in the message: %s", data)
                 return
             
-            path_in_bucket = f'video/{data["celebrity_code"].replace("_", "/")}/{data["user_name"]}.mp4'
-            
-            if data['video'] == 'generated':
-                self.logger.info("Video was already generated for user: %s", data['user_name'])
-                data['video'] = self.get_video_url(path_in_bucket)
-                await self._redis.publish(self.generated_channel, json.dumps(data))
-                return 
-                
-            self.logger.info("Received video data in video_generated_queue")
-            self.s3.upload_file(data['video'], self.generated_bucket, path_in_bucket)
-            self.logger.info("Video was upload: %s", data)
-            os.remove(data['video'])
-            data['video'] = f'{self.data_storage}/{self.generated_bucket}/{path_in_bucket}'
             await self._redis.publish(self.generated_channel, json.dumps(data))
         
         except json.JSONDecodeError as e:

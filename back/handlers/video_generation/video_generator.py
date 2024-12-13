@@ -17,7 +17,9 @@ class VideoGenerator(Generator):
         self.generation_requests : list[VideoGeneration] = []
         self.__lock = threading.Lock()
         os.makedirs(os.getenv('video_data_temp'), exist_ok=True)
-        super().__init__(redis_storage, {"return_video_channel" : return_video_channel}, 
+        super().__init__(redis_storage, {"return_video_channel" : return_video_channel,
+                                         "video_processor_request_channel" : os.getenv('video_processor_request_channel'),
+                                         "video_processor_response_channel" : os.getenv('video_processor_response_channel')}, 
                          table, queue_name, VideoGenerator.__max_threads, notification_channel)
         
         self.logger = logging.getLogger(__name__)
