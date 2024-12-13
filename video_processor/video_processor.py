@@ -1,3 +1,4 @@
+import os
 from moviepy import VideoFileClip, concatenate_videoclips, ImageClip
 import numpy as np
 from moviepy.video.fx import Crop, Resize
@@ -6,49 +7,57 @@ from multiprocessing import Queue
 import requests
 import redis
 import json
+from boto3 import Session
+import logging
+
 
 class Video:
     def __init__ (self, video_path:str):
         self.video_path = video_path
     
     @staticmethod
-    def from_url (self, video_url:str, save_path:str):
-        self.video_url = video_url
-        self.video_path = save_path
+    def from_url (video_url:str, save_path:str):
+        res = Video(save_path)
         with open(save_path, "wb") as f:
             video_response = requests.get(video_url)
             f.write(video_response.content)
+        return res
         
     def get_clip(self) -> VideoFileClip:
         return VideoFileClip(self.video_path)
 
 
-class Listener:
+class Worker:
     def __init__ (self, output_channel: str, 
-                    redis_storage_url: str, 
-                    s3, bucket_name: str, storage_url: str):
+                    redis_storage_url: str):
+        session = Session(
+            aws_access_key_id=os.getenv('YC_STATIC_KEY_ID'),
+            aws_secret_access_key=os.getenv('YC_STATIC_KEY'),
+            region_name='ru-central1'  
+        )
+        self.storage_url = os.getenv('STORAGE_URL')
+        self.s3 = session.client(service_name='s3', endpoint_url=self.storage_url)
         self.output_channel = output_channel
         self.redis = redis.Redis.from_url(redis_storage_url)
-        self.s3 = s3
-        self.bucket_name = bucket_name
-        self.storage_url = storage_url
+        self.bucket_name = os.getenv('BUCKET_NAME')
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(__name__)
     
     @staticmethod
     def start_listening(queue: Queue, 
                         output_channel: str,
-                        redis_storage_url: str,
-                        s3, bucket_name: str, storage_url: str):
+                        redis_storage_url: str):
         def get_video_path(celebrity_code: str):
             return f"data/{celebrity_code.replace('_', '/')}/part2.mp4"
-
         processor = VideoProcessor()
-        listener = Listener(output_channel, redis_storage_url, s3, bucket_name, storage_url)
+        listener = Worker(output_channel, redis_storage_url)
+        listener.logger.info("Worker started")
         while True:
             data = queue.get()
             data = json.loads(data)
             if data == "STOP":
                 break
-            
+            listener.logger.info(f"Processing request: {data}")
             request_id = data['id']
             user_name = data['user_name']
             celebrity_code = data['celebrity_code']
@@ -59,10 +68,13 @@ class Listener:
             output_path = f"temp/{request_id}_out.mp4"
             
             processor._concatenate_videos(video1, video2, output_path)
-
+            listener.logger.info(f"Video concatenated and saved to {output_path}")
             path_in_bucket = listener.get_path_in_bucket(celebrity_code, user_name)
             listener.upload(output_path, path_in_bucket)
+            listener.logger.info(f"Video uploaded to {listener.storage_url}/{listener.bucket_name}/{path_in_bucket}")
             listener.notify(request_id, path_in_bucket)
+            os.remove(output_path)
+            os.remove(video1.video_path)
             
     def get_path_in_bucket(self, celebrity_code: str, user_name: str):
         return f'video/{celebrity_code.replace("_", "/")}/{user_name}.mp4'
