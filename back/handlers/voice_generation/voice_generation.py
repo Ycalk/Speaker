@@ -28,6 +28,10 @@ class _PromptGenerator:
         prompt['hints'][1]['role'] = "friendly"
         prompt['hints'][2]['speed'] = "1.1"
         return prompt
+    
+    @staticmethod
+    def get_burunov_prompt(name: str) -> dict:
+        return _PromptGenerator.get_vidos_prompt(name)
 
 class VoiceGenerationStatus(enum.Enum):
     CREATED = 0
@@ -38,11 +42,11 @@ class VoiceGenerationStatus(enum.Enum):
 
 class VoiceGeneration:
     __celebrity_to_model ={
-        "vidos_good_v1": "vidos_good_1",
-        "vidos_good_v2": "vidos_good_1",
-        "vidos_bad_v1": "vidos_good_1",
-        "vidos_bad_v2": "vidos_good_1",
-        "vidos_bad_v3": "vidos_good_1",
+        "vidos_good_v1": "vidos",
+        "vidos_good_v2": "vidos",
+        "vidos_bad_v1": "vidos",
+        "vidos_bad_v2": "vidos",
+        "vidos_bad_v3": "vidos",
         "burunov" : "burunov",
     }
     
@@ -66,7 +70,10 @@ class VoiceGeneration:
                                               "vidos_bad_v1", "vidos_bad_v2", "vidos_bad_v3"):
             self.__prompt = _PromptGenerator.get_vidos_prompt(self.request['user_name'])
             self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
-    
+        elif self.request['celebrity_code'] == "burunov":
+            self.__prompt = _PromptGenerator.get_burunov_prompt(self.request['user_name'])
+            self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
+        
     @property
     def status(self):
         return self.__status
