@@ -8,6 +8,20 @@ class AppType(enum.Enum):
     TELEGRAM = "telegram"
     VK = "vk"
 
+class Gender(enum.Enum):
+    MALE = 0,
+    FEMALE = 1,
+    UNKNOWN = 2
+    
+    @staticmethod
+    def from_str(value: str):
+        if value == "MALE":
+            return Gender.MALE
+        elif value == "FEMALE":
+            return Gender.FEMALE
+        else:
+            return Gender.UNKNOWN
+
 class Connector:
     @property
     def utils(self):
@@ -119,7 +133,7 @@ class Connector:
                     )
                 return await response.json()
 
-    async def validate_name(self, name: str) -> bool:
+    async def validate_name(self, name: str) -> tuple[bool, Gender]:
         """
         Validates a given name by sending it to the server for verification.
 
@@ -138,9 +152,8 @@ class Connector:
         async with aiohttp.ClientSession() as session:
             async with session.post(f'{self.__server_address}/validate', json={"name": name}) as response:
                 if response.status == 200:
-                    return True
-                elif response.status == 400:
-                    return False
+                    data = await response.json()
+                    return data['valid'], Gender.from_str(data["gender"])
                 else:
                     raise aiohttp.ClientResponseError(
                         request_info=response.request_info,

@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery
 from bot import connector, constants
+from utils.connector import Gender
 
 class GenerateState(StatesGroup):
     celebrity_name = State()
@@ -43,8 +44,8 @@ async def user_name(message: Message, state: FSMContext):
     if not is_correct(message.text):
         await message.answer(texts['messages']['incorrect_name'].format(symbols_count=constants['MAX_NAME_LENGTH']))
         return
-    
-    if not await connector.validate_name(message.text):
+    valid_name, gender = await connector.validate_name(message.text)
+    if not valid_name:
         await message.answer(texts['messages']['invalid_name'])
         return
     await state.update_data(name=message.text)
@@ -55,15 +56,14 @@ async def user_name(message: Message, state: FSMContext):
         await state.set_state(GenerateState.generating)
         await connector.redis.create_generation_request(message.from_user.id, user_data['celebrity']['code'], message.text)
     else:
-        await message.answer(texts['messages']['behavior'], reply_markup=behavior_keyboard())
+        gender_a = "а" if gender == Gender.FEMALE else ""
+        await message.answer(texts['messages']['behavior'].format(gender_a=gender_a), reply_markup=behavior_keyboard(gender == Gender.MALE))
         await state.set_state(GenerateState.behavior)
 
 
 @generate_router.callback_query(GenerateState.behavior)
 async def behavior(query: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
-    await state.update_data(celebrity = {'code': user_data['celebrity']['code'] + f"_{query.data}", 
-                                         'name': user_data['celebrity']['name']})
 
     await query.message.edit_text(texts['messages']['generating']
                                   .format(user_name=user_data['name'], 
