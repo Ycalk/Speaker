@@ -6,14 +6,13 @@ import os
 
 app = Quart(__name__)
 NAME_API_URL = os.getenv('NAME_API_URL')
-
+with open('utils/config.json', 'r', encoding='utf-8') as config_file:
+    config_data = json.load(config_file)
 
 @app.route('/config', methods=['GET'])
 async def get_config():
     try:
-        with open('utils/config.json', 'r', encoding='utf-8') as config_file:
-            config_data = json.load(config_file)
-            return jsonify(config_data)
+        return jsonify(config_data)
     except FileNotFoundError:
         return jsonify({"error": "Config file not found"}), 404
     except Exception as e:
@@ -22,9 +21,7 @@ async def get_config():
 @app.route('/celebrities', methods=['GET'])
 async def get_celebrities():
     try:
-        with open('utils/celebrities.json', 'r', encoding='utf-8') as config_file:
-            config_data = json.load(config_file)
-            return jsonify(config_data)
+        return jsonify(config_data)
     except Exception as e:
         return jsonify({"error": "Something went wrong", "message": str(e)}), 500
 
@@ -57,7 +54,7 @@ async def validate_name(name: str) -> tuple[bool, str]:
             },
         }
     }
-    if name.isalpha() and bool(re.fullmatch(r'[а-яА-ЯёЁ]+', name)):
+    if name.isalpha() and bool(re.fullmatch(r'[а-яА-ЯёЁ]+', name)) and len(name) < config_data["MAX_NAME_LENGTH"]:
         async with aiohttp.ClientSession(headers={"Content-Type": "application/json"}) as session:
             async with session.post(NAME_API_URL, json=data) as response:
                 if response.status == 200:

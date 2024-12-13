@@ -1,13 +1,18 @@
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.filters.callback_data import CallbackData
 from bot import texts, connector
+
+class CreateCallback(CallbackData, prefix="create"):
+    message: str
 
 buttons_texts = texts['buttons']
 
 def main_keyboard() -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text=buttons_texts['create'])],
-    ], resize_keyboard=True, one_time_keyboard=True)
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=buttons_texts['create'], 
+                              callback_data=CreateCallback(message='create').pack())],
+    ],)
 
 async def celebrities_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(

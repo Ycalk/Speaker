@@ -5,6 +5,7 @@ import moviepy.editor as mp
 import aiohttp
 from utils.connector import AppType
 from aiogram.fsm.storage.base import StorageKey
+from keyboards.keyboards import main_keyboard
 import aioredis
 from aiogram import Bot
 from aiogram.types import URLInputFile
@@ -61,15 +62,33 @@ class ListenerImpl(Listener):
         self.__bot = bot
         self.__redis_fsm = aioredis.from_url(f"{redis_storage}", db=fsm_storage_table)
         super().__init__(appType, redis_storage, generating_queue_table)
+        self.texts = json.load(open('utils/texts.json', 'r', encoding='utf-8'))
 
     async def __clear_state(self, user_id):
         await self.__redis_fsm.delete(f"fsm:{user_id}:{user_id}:state")
+    
+    
+    async def __send_congratulations(self, user_id, celebrity_code, user_name):
+        if celebrity_code.startswith("vidos_good"):
+            await self.__bot.send_message(user_id, 
+                                          self.texts['messages']['on_create_good_behavior'].format(name=user_name.capitalize()),
+                                          reply_markup=main_keyboard())
+        elif celebrity_code.startswith("vidos_bad"):
+            await self.__bot.send_message(user_id, 
+                                          self.texts['messages']['on_create_bad_behavior'].format(name=user_name.capitalize()),
+                                          reply_markup=main_keyboard())
+        else:
+            await self.__bot.send_message(user_id, 
+                                          self.texts['messages']['on_create'],
+                                          reply_markup=main_keyboard())
+        
     
     async def handler(self, data: dict):
         video = URLInputFile(data['video'])
         user_id = data['user_id']
         await self.__bot.send_video_note(user_id, video)
         await self.__clear_state(user_id)
+        await self.__send_congratulations(user_id, data['celebrity_code'], data['user_name'])
     
     async def notification_handler(self, notification: NotificationModel):
         if notification.notification_type == NotificationModel.NotificationType.UPDATE:

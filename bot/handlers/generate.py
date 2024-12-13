@@ -1,9 +1,10 @@
 from aiogram import Router, F
 from aiogram.types import Message
 from bot import texts
-from keyboards.keyboards import celebrities_keyboard, behavior_keyboard
+from keyboards.keyboards import celebrities_keyboard, behavior_keyboard, CreateCallback
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.filters.callback_data import CallbackData
 from aiogram.types import CallbackQuery
 from bot import connector, constants
 from utils.connector import Gender
@@ -16,12 +17,16 @@ class GenerateState(StatesGroup):
     
 generate_router = Router()
 
-@generate_router.message(F.text == texts['buttons']['create'])
-async def create(message: Message, state: FSMContext):
+@generate_router.callback_query(CreateCallback.filter(F.message=='create'))
+async def create(query: CallbackQuery, state: FSMContext):
     if (await state.get_state() == GenerateState.generating):
-        await message.answer(texts['messages']['already_generating'])
+        await query.message.edit_text(
+            text=texts['messages']['already_generating'],
+            reply_markup=None)
         return
-    await message.answer(texts['messages']['choose_celebrity'], reply_markup=await celebrities_keyboard())
+    await query.message.edit_text(
+        text=texts['messages']['choose_celebrity'], 
+        reply_markup=await celebrities_keyboard())
     await state.set_state(GenerateState.celebrity_name)
 
 @generate_router.callback_query(GenerateState.celebrity_name)
@@ -35,18 +40,11 @@ async def celebrity_name(query: CallbackQuery, state: FSMContext):
 
 @generate_router.message(GenerateState.user_name)
 async def user_name(message: Message, state: FSMContext):
-    
-    def is_correct(name: str) -> bool:
-        return name.isalpha() and len(name) <= constants['MAX_NAME_LENGTH']
-    
     user_data = await state.get_data()
     
-    if not is_correct(message.text):
-        await message.answer(texts['messages']['incorrect_name'].format(symbols_count=constants['MAX_NAME_LENGTH']))
-        return
     valid_name, gender = await connector.validate_name(message.text)
     if not valid_name:
-        await message.answer(texts['messages']['invalid_name'])
+        await message.answer(texts['messages']['incorrect_name'].format(symbols_count=constants['MAX_NAME_LENGTH']))
         return
     await state.update_data(name=message.text)
     
@@ -56,8 +54,12 @@ async def user_name(message: Message, state: FSMContext):
         await state.set_state(GenerateState.generating)
         await connector.redis.create_generation_request(message.from_user.id, user_data['celebrity']['code'], message.text)
     else:
-        gender_a = "а" if gender == Gender.FEMALE else ""
-        await message.answer(texts['messages']['behavior'].format(gender_a=gender_a), reply_markup=behavior_keyboard(gender == Gender.MALE))
+        gender_a = ""
+        if gender == Gender.FEMALE:
+            gender_a = "а"
+        elif gender == Gender.UNKNOWN:
+            gender_a = "(а)"
+        await message.answer(texts['messages']['behavior'].format(gender_a=gender_a, name=message.text.capitalize()), reply_markup=behavior_keyboard(gender == Gender.MALE))
         await state.set_state(GenerateState.behavior)
 
 
@@ -66,7 +68,7 @@ async def behavior(query: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
 
     await query.message.edit_text(texts['messages']['generating']
-                                  .format(user_name=user_data['name'], 
+                                  .format(user_name=user_data['name'].capitalize(), 
                                     celebrity_name=user_data['celebrity']['name']),
                                   reply_markup=None)
     await state.set_state(GenerateState.generating)
