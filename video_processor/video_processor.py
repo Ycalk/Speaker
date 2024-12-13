@@ -45,6 +45,7 @@ class Listener:
         listener = Listener(output_channel, redis_storage_url, s3, bucket_name, storage_url)
         while True:
             data = queue.get()
+            data = json.loads(data)
             if data == "STOP":
                 break
             
