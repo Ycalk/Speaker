@@ -95,7 +95,7 @@ class ListenerImpl(Listener):
         user_id = data['user_id']
         await self.__bot.send_video_note(user_id, video)
         await self.__clear_state(user_id)
-        await self.__send_congratulations(user_id, data['celebrity_code'], data['user_name'])
+        await self.__send_congratulations(user_id, data['celebrity_code'], data['user_name'], data['gender'])
     
     async def notification_handler(self, notification: NotificationModel):
         if notification.notification_type == NotificationModel.NotificationType.UPDATE:

@@ -3,6 +3,7 @@ from quart import Quart, jsonify, request
 import json
 import re
 import os
+import aioredis
 
 app = Quart(__name__)
 NAME_API_URL = os.getenv('NAME_API_URL')
@@ -12,6 +13,10 @@ with open('utils/config.json', 'r', encoding='utf-8') as config_file:
 
 with open('utils/celebrities.json', 'r', encoding='utf-8') as celebrities_file:
     celebrities_data = json.load(celebrities_file)
+
+redis = aioredis.from_url(os.getenv('REDIS_STORAGE'), db=config_data['redis']['generating_queue_table'])
+to_generate_key = config_data['redis']['generating_queue_table_keys']['voice']
+
 
 @app.route('/config', methods=['GET'])
 async def get_config():
@@ -28,6 +33,10 @@ async def get_celebrities():
         return jsonify(celebrities_data)
     except Exception as e:
         return jsonify({"error": "Something went wrong", "message": str(e)}), 500
+
+@app.route('/queue_length', methods=['GET'])
+async def get_queue_length():
+    return jsonify({"queue_length": await redis.llen(to_generate_key)})
 
 @app.route('/validate', methods=['POST'])
 async def validate():

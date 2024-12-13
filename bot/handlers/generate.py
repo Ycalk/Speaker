@@ -57,6 +57,8 @@ async def user_name(message: Message, state: FSMContext):
             message.from_user.id, 
             user_data['celebrity']['code'], 
             message.text, str(gender))
+        queue_length = await connector.get_queue_length()
+        await message.answer(texts['messages']['queue_length'].format(queue_length=queue_length))
     else:
         ending = ""
         if gender == Gender.FEMALE:
@@ -80,4 +82,6 @@ async def behavior(query: CallbackQuery, state: FSMContext):
         query.message.chat.id, 
         f"{user_data['celebrity']['code']}_{query.data}", 
         user_data['name'], user_data['gender'])
+    queue_length = await connector.get_queue_length()
+    await query.message.answer(texts['messages']['queue_length'].format(queue_length=queue_length))
     

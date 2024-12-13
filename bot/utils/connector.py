@@ -103,6 +103,31 @@ class Connector:
         else:
             raise requests.HTTPError(response.text)
     
+    async def get_queue_length(self) -> int:
+        """
+        Fetches the length of the generation queue from the server.
+
+        Raises:
+            aiohttp.ClientResponseError: If the server returns an error response
+
+        Returns:
+            int: The length of the generation queue
+
+        Example:
+            length = await get_queue_length()
+            print(f"Queue length: {length}")
+        """
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{self.__server_address}/queue_length") as response:
+                if response.status != 200:
+                    raise aiohttp.ClientResponseError(
+                        request_info=response.request_info,
+                        status=response.status,
+                        message=f"Error {response.status}: {response.reason}",
+                        history=response.history,
+                    )
+                return int((await response.json())['queue_length'])
+    
     async def get_celebrities(self) -> list[dict]:
         """
         Fetches a list of celebrities from the server.
