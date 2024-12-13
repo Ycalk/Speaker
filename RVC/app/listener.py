@@ -22,5 +22,5 @@ class Listener:
                     model = data['model']
                     self.queues[model].put((data['request_id'], data['audio']))
                 except Exception as e:
-                    self.logger.error(f"Error processing message: {e}")
-                    self.logger.error(f"Message: {message}")
+                    self.logger.error(f"Error processing message. Model {message['model']}")
+                    self.logger.error(f"Error: {e}")
