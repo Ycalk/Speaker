@@ -12,7 +12,7 @@ from handlers.generator import Update, Error
 class RequestGenerator:
     """Class to generate requests for lip sync API."""
     DEFAULT_REQUEST = {
-        "model": "lipsync-1.8.0",
+        "model": "lipsync-1.7.1",
         "input": [
             {"type": "video", "url": ""},
             {"type": "audio", "url": ""}
@@ -88,7 +88,6 @@ class VideoGeneration:
                 self.logger.debug("Waiting for lip sync generation: %s", response_status)
                 time.sleep(3)
 
-            # Save the video locally
             video_url = response_status['outputUrl']
 
             self.logger.info('Lip sync created %s', video_url)

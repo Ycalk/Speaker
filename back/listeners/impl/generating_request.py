@@ -45,7 +45,7 @@ class GeneratingRequestListener (Listener):
         
         if data['celebrity_code'] == 'vidos_bad':
             available_codes = ['vidos_bad_v1', 'vidos_bad_v3']
-            print(data['gender'])
+            
             if data['gender'] == "Gender.MALE":
                 available_codes.append('vidos_bad_v2')
             data['celebrity_code'] = random.choice(available_codes)

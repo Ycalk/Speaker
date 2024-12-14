@@ -1,12 +1,13 @@
 import os
-from moviepy import VideoFileClip, concatenate_videoclips, ImageClip
+from moviepy import ImageSequenceClip, VideoFileClip, concatenate_videoclips, ImageClip
 import numpy as np
-from moviepy.video.fx import Crop, Resize
+from moviepy.video.fx import Crop, Resize, MultiplySpeed
 from PIL import Image, ImageDraw
 from multiprocessing import Queue
 import requests
 import redis
 import json
+import cv2
 from boto3 import Session
 import logging
 
@@ -93,7 +94,6 @@ class Worker:
         self.redis.publish(self.output_channel, json.dumps(response))
 
 class VideoProcessor:
-    
     def _create_circle_mask(self, size):
         """Creates a circular mask of the given size."""
         mask = Image.new("L", (size, size), 0)
@@ -108,15 +108,61 @@ class VideoProcessor:
         video = video.with_mask(mask_array).with_effects([Crop(width=size, height=size, x_center=video.w / 2, y_center=video.h / 2)])
         return video
 
+    def _match_colors(self, source_frame, reference_frame):
+        """Matches the color of the source frame to the reference frame."""
+        source_lab = cv2.cvtColor(source_frame, cv2.COLOR_RGB2Lab)
+        reference_lab = cv2.cvtColor(reference_frame, cv2.COLOR_RGB2Lab)
+        matched_lab = source_lab.copy()
+        
+        for i in range(3):
+            source_hist, _ = np.histogram(source_lab[:, :, i].flatten(), bins=256, range=[0, 256])
+            reference_hist, _ = np.histogram(reference_lab[:, :, i].flatten(), bins=256, range=[0, 256])
+
+            source_cdf = np.cumsum(source_hist).astype(float) / source_hist.sum()
+            reference_cdf = np.cumsum(reference_hist).astype(float) / reference_hist.sum()
+
+            mapping = np.interp(source_cdf, reference_cdf, np.arange(256))
+            matched_lab[:, :, i] = cv2.LUT(source_lab[:, :, i], mapping.astype(np.uint8))
+
+        return cv2.cvtColor(matched_lab, cv2.COLOR_Lab2RGB)
+
+    def _generate_intermediate_frames(self, frame1, frame2, num_frames=10):
+        """Generates intermediate frames between two frames."""
+        intermediate_frames = []
+        for i in range(1, num_frames + 1):
+            alpha = i / (num_frames + 1)
+            blended_frame = (1 - alpha) * frame1 + alpha * frame2
+            intermediate_frames.append(np.uint8(blended_frame))
+        return intermediate_frames
+    
+    def _get_intermediate_clip(self, video1: VideoFileClip, video2: VideoFileClip) -> ImageSequenceClip:
+        frame1 = list(video1.iter_frames())[-1]
+        frame2 = video2.get_frame(0)
+        intermediate_frames = self._generate_intermediate_frames(frame1, frame2)
+        return ImageSequenceClip(intermediate_frames, fps=video1.fps).resized(width=video1.w, height=video1.h)
+    
+    def color_correct_clip(self, clip: VideoFileClip, ref_frame) -> ImageSequenceClip:
+        processed_frames = [self._match_colors(frame, ref_frame) for frame in clip.iter_frames(dtype="uint8")]
+
+        for frame in self._generate_intermediate_frames(processed_frames[-1], ref_frame):
+            processed_frames.append(frame)
+        
+        return ImageSequenceClip(processed_frames, fps=clip.fps).resized(width=clip.w, height=clip.h).with_audio(clip.audio)
+    
     def _concatenate_videos(self, video1: Video, video2: Video, output_path: str):
         """Concatenates two video clips, applies a circular mask, and saves the final output."""
-        video1 = video1.get_clip()
-        video2 = video2.get_clip()
-
-        video1 = self._apply_circle_mask(video1)
-        video2 = self._apply_circle_mask(video2)
-
-        final_video = concatenate_videoclips([video1, video2], method="compose")
+        video2_clip = video2.get_clip()
+        
+        video1_corrected = self.color_correct_clip(video1.get_clip(), video2_clip.get_frame(0))
+        
+        video1_masked = self._apply_circle_mask(video1_corrected)
+        video2_masked = self._apply_circle_mask(video2_clip)
+        
+        intermediate_clip = self._get_intermediate_clip(video1_masked, video2_masked)
+        intermediate_clip_masked = self._apply_circle_mask(intermediate_clip)
+        intermediate_clip_speed_up = MultiplySpeed(factor=5).apply(intermediate_clip_masked)
+        
+        final_video = concatenate_videoclips([video1_masked, intermediate_clip_speed_up, video2_masked], method="compose")
         
         final_video = final_video.with_effects([Resize(height=480, width=480)])
 
