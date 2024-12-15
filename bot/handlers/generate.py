@@ -27,7 +27,8 @@ async def create(query: CallbackQuery, state: FSMContext):
             reply_markup=None)
         return
     
-    if not (await bot_utils.check_user_subscription(query.message.chat.id)):
+    if ((await connector.redis.get_count_of_generations(query.message.chat.id)) != 0 and 
+        (not (await bot_utils.check_user_subscription(query.message.chat.id)))):
         await query.message.edit_text(
             text=texts['messages']['channel_subscribe'],
             reply_markup=subscribe_keyboard(bot_utils.channel_url))

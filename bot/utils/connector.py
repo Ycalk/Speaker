@@ -45,7 +45,8 @@ class Connector:
     class Redis:
         def __init__ (self, parent, storage, table_data: dict):
             self.__parent: Connector = parent
-            self.__generation_queue = aioredis.from_url(f"{storage}", db=table_data["generating_queue_table"])
+            self.__generation_queue = aioredis.from_url(storage, db=table_data["generating_queue_table"])
+            self.__user_data = aioredis.from_url(storage, db=table_data["user_data_table"])
         
         async def create_generation_request(self, user_id: int, 
                                             celebrity_code: str, user_name: str,
@@ -67,7 +68,22 @@ class Connector:
                 "gender": gender
             })
             await self.__generation_queue.publish("queue", data)
-    
+
+        async def get_count_of_generations(self, user_id: int) -> int:
+            """
+            Get count of generations for user
+
+            Args:
+                user_id (int): User id (eg telegram id)
+
+            Returns:
+                int: Count of generations
+            """
+            user_data = await self.__user_data.get(user_id)
+            if user_data:
+                return int(user_data)
+            return 0
+        
     def __init__(self, app_type:AppType, server: str, port: str,
                  redis_storage: str):
         self.__app_type = app_type
