@@ -1,15 +1,10 @@
 import enum
 import json
-import os
-import moviepy.editor as mp
-import aiohttp
 from utils.connector import AppType
-from aiogram.fsm.storage.base import StorageKey
 from keyboards.keyboards import main_keyboard
 import aioredis
 from aiogram import Bot
 from aiogram.types import URLInputFile
-from bot import dp
 
 class NotificationModel:
     class NotificationType (enum.Enum):
