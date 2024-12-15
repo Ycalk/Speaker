@@ -22,6 +22,11 @@ class VoiceChanger:
             'model': 'Burunov.pth',
             'index_path': 'logs/Burunov/added_IVF772_Flat_nprobe_1_Burunov_v2.index',
             'pitch': -11
+        },
+        "musagaliev": {
+            'model': 'Musagaliev.pth',
+            'index_path': 'logs/Musagaliev/added_IVF683_Flat_nprobe_1_Musagaliev_v2.index',
+            'pitch': -11
         }
     }
 
