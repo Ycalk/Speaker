@@ -1,13 +1,14 @@
 from aiogram import Router, F
 from aiogram.types import Message
 from bot import texts
-from keyboards.keyboards import celebrities_keyboard, behavior_keyboard, CreateCallback
+from keyboards.keyboards import celebrities_keyboard, behavior_keyboard, subscribe_keyboard
+from keyboards.keyboards import CreateCallback
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.filters.callback_data import CallbackData
 from aiogram.types import CallbackQuery
 from bot import connector, constants
 from utils.connector import Gender
+from utils.bot_utils import BotUtils
 
 class GenerateState(StatesGroup):
     celebrity_name = State()
@@ -16,6 +17,7 @@ class GenerateState(StatesGroup):
     generating = State()
     
 generate_router = Router()
+bot_utils = BotUtils()
 
 @generate_router.callback_query(CreateCallback.filter(F.message=='create'))
 async def create(query: CallbackQuery, state: FSMContext):
@@ -23,6 +25,12 @@ async def create(query: CallbackQuery, state: FSMContext):
         await query.message.edit_text(
             text=texts['messages']['already_generating'],
             reply_markup=None)
+        return
+    
+    if not (await bot_utils.check_user_subscription(query.message.chat.id)):
+        await query.message.edit_text(
+            text=texts['messages']['channel_subscribe'],
+            reply_markup=subscribe_keyboard(bot_utils.channel_url))
         return
     await query.message.edit_text(
         text=texts['messages']['choose_celebrity'], 
@@ -42,7 +50,7 @@ async def celebrity_name(query: CallbackQuery, state: FSMContext):
 async def user_name(message: Message, state: FSMContext):
     user_data = await state.get_data()
     
-    valid_name, gender = await connector.validate_name(message.text)
+    valid_name, gender = await connector.validate_name(message.text, message.from_user.id)
     await state.update_data(gender=str(gender))
     if not valid_name:
         await message.answer(texts['messages']['incorrect_name'].format(symbols_count=constants['MAX_NAME_LENGTH']))

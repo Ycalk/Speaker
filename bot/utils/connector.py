@@ -162,7 +162,7 @@ class Connector:
                     )
                 return await response.json()
 
-    async def validate_name(self, name: str) -> tuple[bool, Gender]:
+    async def validate_name(self, name: str, user_id) -> tuple[bool, Gender]:
         """
         Validates a given name by sending it to the server for verification.
 
@@ -179,7 +179,7 @@ class Connector:
                 - Gender: The gender associated with the name, as determined by the server.
         """
         async with aiohttp.ClientSession() as session:
-            async with session.post(f'{self.__server_address}/validate', json={"name": name}) as response:
+            async with session.post(f'{self.__server_address}/validate', json={"name": name, "user_id": user_id}) as response:
                 if response.status == 200:
                     data = await response.json()
                     return data['valid'], Gender.from_str(data["gender"])
