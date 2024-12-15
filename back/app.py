@@ -8,8 +8,8 @@ from time import time
 
 app = Quart(__name__)
 NAME_API_URL = os.getenv('NAME_API_URL')
-VALIDATE_NAME_TIME_WINDOW = os.getenv('VALIDATE_NAME_TIME_WINDOW')
-VALIDATE_NAME_SPAM_THRESHOLD = os.getenv('VALIDATE_NAME_SPAM_THRESHOLD')
+VALIDATE_NAME_TIME_WINDOW = int(os.getenv('VALIDATE_NAME_TIME_WINDOW'))
+VALIDATE_NAME_SPAM_THRESHOLD = int(os.getenv('VALIDATE_NAME_SPAM_THRESHOLD'))
 
 
 with open('utils/config.json', 'r', encoding='utf-8') as config_file:
@@ -92,7 +92,7 @@ async def validate_name(name: str) -> tuple[bool, str]:
             },
         }
     }
-    if name.isalpha() and bool(re.fullmatch(r'[а-яА-ЯёЁ]+', name)) and len(name) < config_data["MAX_NAME_LENGTH"]:
+    if name.isalpha() and bool(re.fullmatch(r'[а-яА-ЯёЁ]+', name)) and len(name) > 2 and len(name) < config_data["MAX_NAME_LENGTH"]:
         async with aiohttp.ClientSession(headers={"Content-Type": "application/json"}) as session:
             async with session.post(NAME_API_URL, json=data) as response:
                 if response.status == 200:

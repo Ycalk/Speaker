@@ -3,6 +3,7 @@ import enum
 import json
 import logging
 import datetime
+import time
 import requests
 import os
 from handlers.generator import Generator
@@ -163,34 +164,36 @@ class VoiceGeneration:
         try:
             self.logger.info("Changing voice for request: %s", {k: v for k, v in self.request.items() if k != 'audio'})
             
-            self.redis.publish(self.vc_request, json.dumps({"request_id": self.request['id'], 
-                                                            "audio": audio_data, 
-                                                            "model": VoiceGeneration.__celebrity_to_model[self.request['celebrity_code']]}))
+            self.redis.publish(self.vc_request, json.dumps({
+                "request_id": self.request['id'], 
+                "audio": audio_data, 
+                "model": VoiceGeneration.__celebrity_to_model[self.request['celebrity_code']]
+            }))
             
             pubsub = self.redis.pubsub()
             pubsub.subscribe(self.vc_response)
-            response = None
             
-            for message in pubsub.listen():
-                if message['type'] == 'message':
+            timeout = 30
+            start_time = time.time()
+            
+            while time.time() - start_time < timeout:
+                message = pubsub.get_message(timeout=1.0)
+                if message and message['type'] == 'message':
                     response = json.loads(message['data'])
                     if response['request_id'] == self.request['id']:
-                        break
-            
-            if response['audio'] != '':
-                self.__status = VoiceGenerationStatus.COMPLETED
-                self.logger.info("Voice change successful for request: %s", 
-                                 {k: v for k, v in self.request.items() if k != 'audio'})
-                self.request['voice_changed'] = datetime.datetime.now().isoformat()
-                self.request['audio'] = response['audio']
-                return True
-            
-            else:
-                self.__status = VoiceGenerationStatus.FAILED
-                self.logger.error("Voice change failed for request: %s", 
-                                  {k: v for k, v in self.request.items() if k != 'audio'})
-                return False
-        
+                        if response['audio'] != '':
+                            self.__status = VoiceGenerationStatus.COMPLETED
+                            self.logger.info("Voice change successful for request: %s", 
+                                            {k: v for k, v in self.request.items() if k != 'audio'})
+                            self.request['voice_changed'] = datetime.datetime.now().isoformat()
+                            self.request['audio'] = response['audio']
+                            return True
+                        else:
+                            break
+            self.__status = VoiceGenerationStatus.FAILED
+            self.logger.error("Voice change failed for request: %s", 
+                            {k: v for k, v in self.request.items() if k != 'audio'})
+            return False
         except Exception as e:
             self.__status = VoiceGenerationStatus.FAILED
             self.logger.error("An error occurred: %s", e)

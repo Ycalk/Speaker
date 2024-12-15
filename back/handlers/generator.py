@@ -2,7 +2,7 @@ import json
 import logging
 import time
 import redis
-import threading
+from concurrent.futures import ThreadPoolExecutor
 import enum
 
 class Notification(enum.Enum):
@@ -37,8 +37,7 @@ class Generator:
         self.__queue_name = queue_name
         self.__generation_config = generation_config
         self.__max_threads = max_threads
-        self.__threads : list[threading.Thread] = []
-        self.__lock = threading.Lock()
+        self.__threads = ThreadPoolExecutor(max_workers=max_threads)
         self.__notification_channel = notification_channel
         
         logging.basicConfig(level=logging.INFO)
@@ -64,15 +63,11 @@ class Generator:
             time.sleep(1)
             
     def __start_generating_thread(self, message):
-        with self.__lock:
-            if len(self.__threads) < self.__max_threads:
-                thread = threading.Thread(target=self._start_generating, args=(message,))
-                thread.start()
-                self.__threads.append(thread)
-                self.logger.info("Started new generating thread: %s", thread.name)
-            else:
-                self.logger.debug("Max threads limit reached. Cannot start new thread.")
-            self.__threads = [t for t in self.__threads if t.is_alive()]
+        if self.__threads._work_queue.qsize() < self.__max_threads:
+            future = self.__threads.submit(self._start_generating, message)
+            self.logger.info("Started new generating thread: %s", future)
+        else:
+            self.logger.debug("Max threads limit reached. Cannot start new thread.")
     
     def _start_generating(self, message):
         raise NotImplementedError('Method not implemented')

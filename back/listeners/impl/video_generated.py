@@ -19,6 +19,7 @@ class VideoGeneratedListener (Listener):
         self.generated_bucket = os.getenv('GENERATED_BUCKET')
     
     async def add_data_to_storage(self, data : dict, json_data : str):
+        self.logger.info("Adding data to storage: %s", data)
         await self.generations_data_redis.set(data['id'], json_data)
         user_data = await self.user_data_redis.get(data['user_id'])
         if user_data is None:
@@ -34,8 +35,8 @@ class VideoGeneratedListener (Listener):
                 self.logger.error("No video data in the message: %s", data)
                 return
             json_data = json.dumps(data)
-            await self._redis.publish(self.generated_channel, json_data)
             await self.add_data_to_storage(data, json_data)
+            await self._redis.publish(self.generated_channel, json_data)
         except json.JSONDecodeError as e:
             self.logger.error("Failed to decode JSON data: %s", e)
         

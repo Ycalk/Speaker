@@ -1,6 +1,5 @@
 import logging
 import os
-import threading
 from handlers.generator import Generator
 import json
 
@@ -13,9 +12,6 @@ class VideoGenerator(Generator):
     def __init__(self, redis_storage, table: int, queue_name: str, return_video_channel: str,
                  notification_channel: str):
         logging.basicConfig(level=logging.INFO)
-            
-        self.generation_requests : list[VideoGeneration] = []
-        self.__lock = threading.Lock()
         os.makedirs(os.getenv('video_data_temp'), exist_ok=True)
         super().__init__(redis_storage, {"return_video_channel" : return_video_channel,
                                          "video_processor_request_channel" : os.getenv('video_processor_request_channel'),
@@ -28,11 +24,7 @@ class VideoGenerator(Generator):
         self.logger.info("Starting voice generation for message: %s", message)
         try:
             new_generation = VideoGeneration(self, json.loads(message))
-            with self.__lock:
-                self.generation_requests = [g for g in self.generation_requests 
-                                            if g.status not in (VideoGenerationStatus.COMPLETED, VideoGenerationStatus.FAILED)]
-                self.generation_requests.append(new_generation)
-                new_generation.start()
+            new_generation.start()
         except json.JSONDecodeError as e:
             self.logger.error("Failed to decode JSON message: %s", e)
         except Exception as e:
