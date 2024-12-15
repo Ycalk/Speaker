@@ -25,7 +25,8 @@ async def _start(redis_storage, config):
     
     video_generated_listener = VideoGeneratedListener(redis_storage, int(config['redis']['generating_queue_table']),
                                             config['redis']['channels']['video_generated'], s3,
-                                            config['redis']['channels']['generated'])
+                                            config['redis']['channels']['generated'],
+                                            int(config['redis']['generations_data_table']))
     
     await asyncio.gather(
         generation_request_listener.listen(),
