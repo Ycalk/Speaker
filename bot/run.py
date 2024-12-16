@@ -1,6 +1,6 @@
 import asyncio
 import os
-from bot import bot, dp, constants
+from bot import bot, dp, constants, queue_listener
 from handlers.start import start_router
 from handlers.generate import generate_router
 from handlers.subscription import subscription_router
@@ -22,7 +22,8 @@ async def main():
     await asyncio.gather(
         dp.start_polling(bot),
         listener.listen(),
-        listener.notifications_listener()
+        listener.notifications_listener(),
+        queue_listener.listen()
     )
     
 

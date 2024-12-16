@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import Message
-from bot import texts
+from bot import texts, queue_listener
 from keyboards.keyboards import celebrities_keyboard, behavior_keyboard, subscribe_keyboard
 from keyboards.keyboards import CreateCallback
 from aiogram.fsm.context import FSMContext
@@ -33,10 +33,17 @@ async def create(query: CallbackQuery, state: FSMContext):
             text=texts['messages']['channel_subscribe'],
             reply_markup=subscribe_keyboard(bot_utils.channel_url))
         return
-    await query.message.edit_text(
-        text=texts['messages']['choose_celebrity'], 
-        reply_markup=await celebrities_keyboard())
-    await state.set_state(GenerateState.celebrity_name)
+    
+    try:
+        celebrities = await connector.get_celebrities()
+            
+        await query.message.edit_text(
+            text=texts['messages']['choose_celebrity'], 
+            reply_markup=celebrities_keyboard(celebrities))
+        await state.set_state(GenerateState.celebrity_name)
+    except Exception as e:
+        await query.message.edit_text(
+            text=texts['messages']['maintenance'])
 
 @generate_router.callback_query(GenerateState.celebrity_name)
 async def celebrity_name(query: CallbackQuery, state: FSMContext):
@@ -62,12 +69,13 @@ async def user_name(message: Message, state: FSMContext):
         await message.answer(texts['messages']['generating'].format(user_name=message.text, 
                                                                 celebrity_name=user_data['celebrity']['name']))
         await state.set_state(GenerateState.generating)
+        queue_length = await connector.get_queue_length()
+        queue_message = await message.answer(texts['messages']['queue_length'].format(queue_length=queue_length))
+        queue_listener.add_listening_user(message.chat.id, queue_message.message_id)
         await connector.redis.create_generation_request(
             message.from_user.id, 
             user_data['celebrity']['code'], 
             message.text, str(gender))
-        queue_length = await connector.get_queue_length()
-        await message.answer(texts['messages']['queue_length'].format(queue_length=queue_length))
     else:
         ending = ""
         if gender == Gender.FEMALE:
@@ -81,16 +89,16 @@ async def user_name(message: Message, state: FSMContext):
 @generate_router.callback_query(GenerateState.behavior)
 async def behavior(query: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
-
     await query.message.edit_text(texts['messages']['generating']
                                   .format(user_name=user_data['name'].capitalize(), 
                                     celebrity_name=user_data['celebrity']['name']),
                                   reply_markup=None)
     await state.set_state(GenerateState.generating)
+    queue_length = await connector.get_queue_length()
+    queue_message = await query.message.answer(texts['messages']['queue_length'].format(queue_length=queue_length))
+    queue_listener.add_listening_user(query.message.chat.id, queue_message.message_id)
     await connector.redis.create_generation_request(
         query.message.chat.id, 
         f"{user_data['celebrity']['code']}_{query.data}", 
         user_data['name'], user_data['gender'])
-    queue_length = await connector.get_queue_length()
-    await query.message.answer(texts['messages']['queue_length'].format(queue_length=queue_length))
     

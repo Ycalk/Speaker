@@ -1,4 +1,5 @@
 import logging
+from utils.queue_listener import QueueListener
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -21,3 +22,6 @@ logger = logging.getLogger(__name__)
 
 bot = Bot(token=os.getenv('TOKEN'), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=RedisStorage.from_url(f"{os.getenv('REDIS_STORAGE')}{constants['redis']['fsm_storage_table']}"), bot=bot)
+queue_listener = QueueListener(os.getenv('REDIS_STORAGE'), bot, 
+                               constants['redis']['generating_queue_table_keys']['voice'], 
+                               constants['redis']['generating_queue_table'])
