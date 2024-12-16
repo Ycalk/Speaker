@@ -1,3 +1,4 @@
+import asyncio
 import aiohttp
 from quart import Quart, jsonify, request
 import json
@@ -5,11 +6,21 @@ import re
 import os
 import aioredis
 from time import time
+import aioredis
 
 app = Quart(__name__)
+server_running_event = asyncio.Event()
 NAME_API_URL = os.getenv('NAME_API_URL')
 VALIDATE_NAME_TIME_WINDOW = int(os.getenv('VALIDATE_NAME_TIME_WINDOW'))
 VALIDATE_NAME_SPAM_THRESHOLD = int(os.getenv('VALIDATE_NAME_SPAM_THRESHOLD'))
+
+@app.before_serving
+async def before_serving():
+    server_running_event.set()
+
+@app.after_serving
+async def after_serving():
+    server_running_event.clear()
 
 
 with open('utils/config.json', 'r', encoding='utf-8') as config_file:
@@ -104,7 +115,13 @@ async def validate_name(name: str) -> tuple[bool, str]:
                             return parse_match(match)
     return False, 'NEUTRAL'
                 
-        
+
+
+@app.route('/shutdown', methods=['POST'])
+async def shutdown():
+    asyncio.get_event_loop().stop()
+    return jsonify({"message": "Server is shutting down..."}), 200
+
 
 def main():
     app.run(host='localhost', port=5000)

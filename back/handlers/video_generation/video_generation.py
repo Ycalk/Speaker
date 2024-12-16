@@ -125,11 +125,19 @@ class VideoGeneration:
                 pubsub = self.redis.pubsub()
                 pubsub.subscribe(self.processor_response_channel)
                 self.logger.info("Subscribed to video processor response channel: %s", self.processor_response_channel)
-                for message in pubsub.listen():
-                    if message['type'] == 'message':
+                
+                timeout = 120
+                start_time = time.time()
+                response = None
+                while time.time() - start_time < timeout:
+                    message = pubsub.get_message(timeout=1.0)
+                    if message and message['type'] == 'message':
                         response = json.loads(message['data'])
                         if response['id'] == self.request['id']:
                             break
+                        else:
+                            response = None
+                            
                 final_video_path = response['video_url']
                 self.request['video_generated'] = datetime.datetime.now().isoformat()
                 self.status = VideoGenerationStatus.COMPLETED

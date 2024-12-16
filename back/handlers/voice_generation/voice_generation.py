@@ -173,7 +173,7 @@ class VoiceGeneration:
             pubsub = self.redis.pubsub()
             pubsub.subscribe(self.vc_response)
             
-            timeout = 30
+            timeout = 120
             start_time = time.time()
             
             while time.time() - start_time < timeout:
