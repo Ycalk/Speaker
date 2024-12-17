@@ -65,7 +65,6 @@ class VideoGeneration:
 
     def create_lip_sync(self) -> str:
         """Creates a lip sync video and returns its url."""
-        self.request['lip_sync_generation_start'] = datetime.datetime.now().isoformat()
         self.logger.info("Creating lip sync for request: %s", self.request)
 
         try:
@@ -139,7 +138,7 @@ class VideoGeneration:
                             response = None
                             
                 final_video_path = response['video_url']
-                self.request['video_generated'] = datetime.datetime.now().isoformat()
+                self.request['video_generation_end'] = datetime.datetime.now().isoformat()
                 self.status = VideoGenerationStatus.COMPLETED
                 self.request['video'] = final_video_path
 
