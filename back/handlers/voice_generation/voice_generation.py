@@ -11,19 +11,22 @@ from pydub import AudioSegment
 from handlers.generator import Update, Error
 
 class _PromptGenerator:
-    default_prompt = {
-        "text": "",
-        "outputAudioSpec": {
-            "containerAudio": {
-                "containerAudioType": "WAV"
-            }
-        },
-        "hints": [{"voice": ""}, {"role": ""}, {"speed": ""}],
-        "loudnessNormalizationType": "LUFS"
-    }
+    @staticmethod
+    def get_default_prompt() -> dict:
+        return {
+            "text": "",
+            "outputAudioSpec": {
+                "containerAudio": {
+                    "containerAudioType": "WAV"
+                }
+            },
+            "hints": [{"voice": ""}, {"role": ""}, {"speed": ""}],
+            "loudnessNormalizationType": "LUFS"
+        }
+        
     @staticmethod
     def get_vidos_prompt(name: str) -> dict:
-        prompt = _PromptGenerator.default_prompt.copy()
+        prompt = _PromptGenerator.get_default_prompt()
         prompt['text'] = f"**{name}**!"
         prompt['hints'][0]['voice'] = "lera"
         prompt['hints'][1]['role'] = "friendly"
@@ -44,11 +47,11 @@ class _PromptGenerator:
     
     @staticmethod
     def get_lebedev_prompt(name: str) -> dict:
-        prompt = _PromptGenerator.default_prompt.copy()
+        prompt = _PromptGenerator.get_default_prompt()
         prompt['text'] = f"**{name}**!"
         prompt['hints'][0]['voice'] = "filipp"
-        prompt['hints'].pop(1)
         prompt['hints'][2]['speed'] = "1.1"
+        prompt['hints'].pop(1)
         return prompt
     
     @staticmethod
