@@ -89,9 +89,10 @@ async def user_name(message: Message, state: FSMContext):
 @generate_router.callback_query(GenerateState.behavior)
 async def behavior(query: CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
-    await query.message.edit_text(texts['messages']['generating']
-                                  .format(user_name=user_data['name'].capitalize(), 
-                                    celebrity_name=user_data['celebrity']['name']),
+    generating_text = texts['messages']['generating'].format(user_name=user_data['name'].capitalize(), 
+                                    celebrity_name=user_data['celebrity']['name'])
+    generating_text += f"\nПоведение: <b>{'Хорошее' if query.data == 'good' else 'Плохое'}</b>"
+    await query.message.edit_text(generating_text,
                                   reply_markup=None)
     await state.set_state(GenerateState.generating)
     queue_length = await connector.get_queue_length()

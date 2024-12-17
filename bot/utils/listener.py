@@ -73,16 +73,16 @@ class ListenerImpl(Listener):
             await self.__bot.send_message(user_id, 
                                           self.texts['messages']['on_create_good_behavior'].format(
                                               name=user_name.capitalize(), ending=ending),
-                                          reply_markup=main_keyboard())
+                                          reply_markup=main_keyboard(is_new = True))
         elif celebrity_code.startswith("vidos_bad"):
             await self.__bot.send_message(user_id, 
                                           self.texts['messages']['on_create_bad_behavior'].format(
                                               name=user_name.capitalize(), ending=ending),
-                                          reply_markup=main_keyboard())
+                                          reply_markup=main_keyboard(is_new = True))
         else:
             await self.__bot.send_message(user_id, 
                                           self.texts['messages']['on_create'],
-                                          reply_markup=main_keyboard())
+                                          reply_markup=main_keyboard(is_new = True))
         
     
     async def handler(self, data: dict):

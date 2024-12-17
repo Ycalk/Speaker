@@ -26,13 +26,15 @@ class QueueListener:
                 index += 1
                 continue
             user_id = int(element["user_id"])
-            if user_id in self.user_data:
+            if user_id in self.user_data and element["app_type"] == "telegram":
                 yield user_id, self.user_data[user_id], index
             index += 1
     
     async def listen(self):
         while True:
+            current_users = set()
             async for user_id, message_id, index in self.__get_list_elements():
+                current_users.add(user_id)
                 if index == 0:
                     await self.bot.edit_message_text(chat_id=user_id, 
                                                      message_id=message_id, text=self.texts['messages']['queue_empty'])
@@ -41,4 +43,10 @@ class QueueListener:
                     await self.bot.edit_message_text(chat_id=user_id, 
                                                      message_id=message_id, 
                                                      text=self.texts['messages']['queue_length'].format(queue_length=index))
+            for user_id in list(self.user_data.keys()):
+                if user_id not in current_users:
+                    await self.bot.edit_message_text(chat_id=user_id, 
+                                                     message_id=self.user_data[user_id], 
+                                                     text=self.texts['messages']['queue_empty'])
+                    self.user_data.pop(user_id)
             await asyncio.sleep(1)
