@@ -23,7 +23,7 @@ class _PromptGenerator:
     }
     @staticmethod
     def get_vidos_prompt(name: str) -> dict:
-        prompt = _PromptGenerator.default_prompt
+        prompt = _PromptGenerator.default_prompt.copy()
         prompt['text'] = f"**{name}**!"
         prompt['hints'][0]['voice'] = "lera"
         prompt['hints'][1]['role'] = "friendly"
@@ -41,6 +41,16 @@ class _PromptGenerator:
     @staticmethod
     def get_carnaval_prompt(name: str) -> dict:
         return _PromptGenerator.get_vidos_prompt(name)
+    
+    @staticmethod
+    def get_lebedev_prompt(name: str) -> dict:
+        prompt = _PromptGenerator.default_prompt.copy()
+        prompt['text'] = f"**{name}**!"
+        prompt['hints'][0]['voice'] = "filipp"
+        prompt['hints'].pop(1)
+        prompt['hints'][2]['speed'] = "1.1"
+        return prompt
+        
 
 class VoiceGenerationStatus(enum.Enum):
     CREATED = 0
@@ -58,7 +68,8 @@ class VoiceGeneration:
         "vidos_bad_v3": "vidos",
         "burunov" : "burunov",
         "musagaliev": "musagaliev",
-        "carnaval": "carnaval"
+        "carnaval": "carnaval",
+        "lebedev": "lebedev",
     }
     
     
@@ -80,16 +91,16 @@ class VoiceGeneration:
         if self.request['celebrity_code'] in ("vidos_good_v1", "vidos_good_v2", 
                                               "vidos_bad_v1", "vidos_bad_v2", "vidos_bad_v3"):
             self.__prompt = _PromptGenerator.get_vidos_prompt(self.request['user_name'])
-            self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
         elif self.request['celebrity_code'] == "burunov":
             self.__prompt = _PromptGenerator.get_burunov_prompt(self.request['user_name'])
-            self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
         elif self.request['celebrity_code'] == "musagaliev":
             self.__prompt = _PromptGenerator.get_musagaliev_prompt(self.request['user_name'])
-            self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
         elif self.request['celebrity_code'] == "carnaval":
             self.__prompt = _PromptGenerator.get_carnaval_prompt(self.request['user_name'])
-            self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
+        elif self.request['celebrity_code'] == "lebedev":
+            self.__prompt = _PromptGenerator.get_lebedev_prompt(self.request['user_name'])
+        
+        self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
         
     @property
     def status(self):

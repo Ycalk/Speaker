@@ -32,6 +32,11 @@ class VoiceChanger:
             'model': 'Carnaval.pth',
             'index_path': 'logs/Carnaval/added_IVF701_Flat_nprobe_1_Carnaval_v2.index',
             'pitch': 3
+        },
+        "lebedev": {
+            'model': 'Lebedev.pth',
+            'index_path': 'logs/Lebedev/added_IVF689_Flat_nprobe_1_Lebedev_v2.index',
+            'pitch': 0
         }
     }
 

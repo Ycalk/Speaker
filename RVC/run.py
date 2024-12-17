@@ -18,20 +18,24 @@ if __name__ == '__main__':
     burunov_queue = Queue()
     musagaliev_queue = Queue()
     carnaval_queue = Queue()
+    lebedev_queue = Queue()
     
     queues = {
         'vidos': vidos_queue,
         'burunov': burunov_queue,
         'musagaliev': musagaliev_queue,
-        'carnaval': carnaval_queue
+        'carnaval': carnaval_queue,
+        'lebedev': lebedev_queue
     }
     
     if os.getenv('REDIS_URL') is None:
         raise ValueError("REDIS_URL is not set")
     
     listener = Listener(os.getenv('REDIS_URL'), os.getenv('request_channel'), queues)
+    
     vidos_worker = Process(target=VoiceChanger.start_voice_changer, 
                            args=('vidos', os.getenv('REDIS_URL'), os.getenv('response_channel'), vidos_queue,))
+    
     burunov_worker = Process(target=VoiceChanger.start_voice_changer, 
                              args=('burunov', os.getenv('REDIS_URL'), os.getenv('response_channel'), burunov_queue,))
     
@@ -40,6 +44,9 @@ if __name__ == '__main__':
     
     carnaval_worker = Process(target=VoiceChanger.start_voice_changer,
                                 args=('carnaval', os.getenv('REDIS_URL'), os.getenv('response_channel'), carnaval_queue,))
+    
+    lebedev_worker = Process(target=VoiceChanger.start_voice_changer,
+                                args=('lebedev', os.getenv('REDIS_URL'), os.getenv('response_channel'), lebedev_queue,))
     
     vidos_worker.start()
     atexit.register(exit_handler, vidos_worker)
@@ -52,5 +59,8 @@ if __name__ == '__main__':
     
     carnaval_worker.start()
     atexit.register(exit_handler, carnaval_worker)
+    
+    lebedev_worker.start()
+    atexit.register(exit_handler, lebedev_worker)
     
     listener.start_listening()
