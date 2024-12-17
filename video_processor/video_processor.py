@@ -160,7 +160,7 @@ class VideoProcessor:
         
         intermediate_clip = self._get_intermediate_clip(video1_masked, video2_masked)
         intermediate_clip_masked = self._apply_circle_mask(intermediate_clip)
-        intermediate_clip_speed_up = MultiplySpeed(factor=5).apply(intermediate_clip_masked)
+        intermediate_clip_speed_up = MultiplySpeed(factor=15).apply(intermediate_clip_masked)
         
         final_video = concatenate_videoclips([video1_masked, intermediate_clip_speed_up, video2_masked], method="compose")
         
