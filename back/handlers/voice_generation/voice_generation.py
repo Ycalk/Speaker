@@ -37,6 +37,10 @@ class _PromptGenerator:
     @staticmethod
     def get_musagaliev_prompt(name: str) -> dict:
         return _PromptGenerator.get_vidos_prompt(name)
+    
+    @staticmethod
+    def get_carnaval_prompt(name: str) -> dict:
+        return _PromptGenerator.get_vidos_prompt(name)
 
 class VoiceGenerationStatus(enum.Enum):
     CREATED = 0
@@ -54,6 +58,7 @@ class VoiceGeneration:
         "vidos_bad_v3": "vidos",
         "burunov" : "burunov",
         "musagaliev": "musagaliev",
+        "carnaval": "carnaval"
     }
     
     
@@ -81,6 +86,9 @@ class VoiceGeneration:
             self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
         elif self.request['celebrity_code'] == "musagaliev":
             self.__prompt = _PromptGenerator.get_musagaliev_prompt(self.request['user_name'])
+            self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
+        elif self.request['celebrity_code'] == "carnaval":
+            self.__prompt = _PromptGenerator.get_carnaval_prompt(self.request['user_name'])
             self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
         
     @property

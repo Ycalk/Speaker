@@ -17,11 +17,13 @@ if __name__ == '__main__':
     vidos_queue = Queue()
     burunov_queue = Queue()
     musagaliev_queue = Queue()
+    carnaval_queue = Queue()
     
     queues = {
         'vidos': vidos_queue,
         'burunov': burunov_queue,
-        'musagaliev': musagaliev_queue
+        'musagaliev': musagaliev_queue,
+        'carnaval': carnaval_queue
     }
     
     if os.getenv('REDIS_URL') is None:
@@ -36,6 +38,9 @@ if __name__ == '__main__':
     musagaliev_worker = Process(target=VoiceChanger.start_voice_changer,
                                 args=('musagaliev', os.getenv('REDIS_URL'), os.getenv('response_channel'), musagaliev_queue,))
     
+    carnaval_worker = Process(target=VoiceChanger.start_voice_changer,
+                                args=('carnaval', os.getenv('REDIS_URL'), os.getenv('response_channel'), carnaval_queue,))
+    
     vidos_worker.start()
     atexit.register(exit_handler, vidos_worker)
     
@@ -44,5 +49,8 @@ if __name__ == '__main__':
     
     musagaliev_worker.start()
     atexit.register(exit_handler, musagaliev_worker)
+    
+    carnaval_worker.start()
+    atexit.register(exit_handler, carnaval_worker)
     
     listener.start_listening()

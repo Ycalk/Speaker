@@ -93,8 +93,6 @@ class ListenerImpl(Listener):
         await self.__send_congratulations(user_id, data['celebrity_code'], data['user_name'], data['gender'])
     
     async def notification_handler(self, notification: NotificationModel):
-        if notification.notification_type == NotificationModel.NotificationType.UPDATE:
-            await self.__bot.send_message(notification.user_id, f"Update: {notification.notification_message}")
-        else:
-            await self.__bot.send_message(notification.user_id, f"Error: {notification.notification_message}")
+        if notification.notification_type == NotificationModel.NotificationType.ERROR:
+            await self.__bot.send_message(notification.user_id, self.texts['messages']['generation_error'])
             await self.__clear_state(notification.user_id)

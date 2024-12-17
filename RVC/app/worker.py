@@ -27,6 +27,11 @@ class VoiceChanger:
             'model': 'Musagaliev.pth',
             'index_path': 'logs/Musagaliev/added_IVF683_Flat_nprobe_1_Musagaliev_v2.index',
             'pitch': -11
+        },
+        "carnaval": {
+            'model': 'Carnaval.pth',
+            'index_path': 'logs/Carnaval/added_IVF701_Flat_nprobe_1_Carnaval_v2.index',
+            'pitch': 3
         }
     }
 
