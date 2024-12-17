@@ -19,13 +19,15 @@ if __name__ == '__main__':
     musagaliev_queue = Queue()
     carnaval_queue = Queue()
     lebedev_queue = Queue()
+    shcherbakova_queue = Queue()
     
     queues = {
         'vidos': vidos_queue,
         'burunov': burunov_queue,
         'musagaliev': musagaliev_queue,
         'carnaval': carnaval_queue,
-        'lebedev': lebedev_queue
+        'lebedev': lebedev_queue,
+        'shcherbakova': shcherbakova_queue
     }
     
     if os.getenv('REDIS_URL') is None:
@@ -48,6 +50,9 @@ if __name__ == '__main__':
     lebedev_worker = Process(target=VoiceChanger.start_voice_changer,
                                 args=('lebedev', os.getenv('REDIS_URL'), os.getenv('response_channel'), lebedev_queue,))
     
+    shcherbakova_worker = Process(target=VoiceChanger.start_voice_changer,
+                                args=('shcherbakova', os.getenv('REDIS_URL'), os.getenv('response_channel'), shcherbakova_queue,))
+    
     vidos_worker.start()
     atexit.register(exit_handler, vidos_worker)
     
@@ -62,5 +67,8 @@ if __name__ == '__main__':
     
     lebedev_worker.start()
     atexit.register(exit_handler, lebedev_worker)
+    
+    shcherbakova_worker.start()
+    atexit.register(exit_handler, shcherbakova_worker)
     
     listener.start_listening()

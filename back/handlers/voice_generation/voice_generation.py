@@ -50,6 +50,10 @@ class _PromptGenerator:
         prompt['hints'].pop(1)
         prompt['hints'][2]['speed'] = "1.1"
         return prompt
+    
+    @staticmethod
+    def get_shcherbakova_prompt(name: str) -> dict:
+        return _PromptGenerator.get_vidos_prompt(name)
         
 
 class VoiceGenerationStatus(enum.Enum):
@@ -70,6 +74,7 @@ class VoiceGeneration:
         "musagaliev": "musagaliev",
         "carnaval": "carnaval",
         "lebedev": "lebedev",
+        "shcherbakova": "shcherbakova"
     }
     
     
@@ -99,6 +104,8 @@ class VoiceGeneration:
             self.__prompt = _PromptGenerator.get_carnaval_prompt(self.request['user_name'])
         elif self.request['celebrity_code'] == "lebedev":
             self.__prompt = _PromptGenerator.get_lebedev_prompt(self.request['user_name'])
+        elif self.request['celebrity_code'] == "shcherbakova":
+            self.__prompt = _PromptGenerator.get_shcherbakova_prompt(self.request['user_name'])
         
         self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
         

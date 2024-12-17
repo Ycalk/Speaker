@@ -10,6 +10,7 @@ import aioredis
 
 app = Quart(__name__)
 server_running_event = asyncio.Event()
+
 NAME_API_URL = os.getenv('NAME_API_URL')
 VALIDATE_NAME_TIME_WINDOW = int(os.getenv('VALIDATE_NAME_TIME_WINDOW'))
 VALIDATE_NAME_SPAM_THRESHOLD = int(os.getenv('VALIDATE_NAME_SPAM_THRESHOLD'))
@@ -31,7 +32,7 @@ with open('utils/celebrities.json', 'r', encoding='utf-8') as celebrities_file:
 
 redis = aioredis.from_url(os.getenv('REDIS_STORAGE'), db=config_data['redis']['generating_queue_table'])
 to_generate_key = config_data['redis']['generating_queue_table_keys']['voice']
-
+fsm_redis = aioredis.from_url(os.getenv('REDIS_STORAGE'), db=config_data['redis']['fsm_storage_table'])
 
 @app.route('/config', methods=['GET'])
 async def get_config():
@@ -122,6 +123,11 @@ async def shutdown():
     asyncio.get_event_loop().stop()
     return jsonify({"message": "Server is shutting down..."}), 200
 
+
+@app.route('/reset_bot_states', methods=['POST'])
+async def reset_states():
+    await fsm_redis.flushdb()
+    return jsonify({"message": "Bot states reset"}), 200
 
 def main():
     app.run(host='localhost', port=5000)

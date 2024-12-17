@@ -37,6 +37,11 @@ class VoiceChanger:
             'model': 'Lebedev.pth',
             'index_path': 'logs/Lebedev/added_IVF689_Flat_nprobe_1_Lebedev_v2.index',
             'pitch': 0
+        },
+        "shcherbakova": {
+            'model': 'Shcherbakova.pth',
+            'index_path': 'logs/Shcherbakova/added_IVF683_Flat_nprobe_1_Shcherbakova_v2.index',
+            'pitch': 0
         }
     }
 
