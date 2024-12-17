@@ -10,9 +10,10 @@ class SubscribeCallback(CallbackData, prefix="subscribe"):
 
 buttons_texts = texts['buttons']
 
-def main_keyboard() -> InlineKeyboardMarkup:
+def main_keyboard(is_new = False) -> InlineKeyboardMarkup:
+    text = buttons_texts['create_new'] if is_new else buttons_texts['create']
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=buttons_texts['create'], 
+        [InlineKeyboardButton(text=text, 
                               callback_data=CreateCallback(message='create').pack())],
     ],)
 
