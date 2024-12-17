@@ -43,7 +43,12 @@ class _PromptGenerator:
     
     @staticmethod
     def get_carnaval_prompt(name: str) -> dict:
-        return _PromptGenerator.get_vidos_prompt(name)
+        prompt = _PromptGenerator.get_default_prompt()
+        prompt['text'] = f"**{name}**!"
+        prompt['hints'][0]['voice'] = "marina"
+        prompt['hints'][1]['role'] = "friendly"
+        prompt['hints'][2]['speed'] = "1.1"
+        return prompt
     
     @staticmethod
     def get_lebedev_prompt(name: str) -> dict:
@@ -134,6 +139,7 @@ class VoiceGeneration:
         return res
     
     def start(self):
+        self.request['voice_generation_start'] = datetime.datetime.now().isoformat()
         self.g.send_notification(Update.GENERATION_STARTED,
                                  self.request['user_id'], self.request['app_type'])
         self.__status = VoiceGenerationStatus.GENERATING_VOICE
@@ -150,7 +156,6 @@ class VoiceGeneration:
                 audio_data = response.json()['result']['audioChunk']['data']
                 self.logger.info("TTS generation successful for request: %s", 
                                  {k: v for k, v in self.request.items() if k != 'audio'})
-                self.request['tts_generated'] = datetime.datetime.now().isoformat()
                 
                 audio_data = self.add_silence(audio_data)
                 self.logger.info("Added silence to audio data for request: %s", 
@@ -165,7 +170,6 @@ class VoiceGeneration:
                                              self.request['user_id'], self.request['app_type'])
                 else:
                     self.__status = VoiceGenerationStatus.COMPLETED
-                    self.request['voice_generated'] = datetime.datetime.now().isoformat()
                     self.g.send_notification(Update.VOICE_GENERATED,
                                              self.request['user_id'], self.request['app_type'])
             else:
@@ -186,6 +190,7 @@ class VoiceGeneration:
             self.request['error'] = f"An error occurred: {str(e)}"
         
         finally:
+            self.request['voice_generation_end'] = datetime.datetime.now().isoformat()
             self.redis.publish(self.return_voice_channel, json.dumps(self.request))
             self.logger.info("Published request to return voice channel: %s", self.return_voice_channel)
     
@@ -214,7 +219,6 @@ class VoiceGeneration:
                             self.__status = VoiceGenerationStatus.COMPLETED
                             self.logger.info("Voice change successful for request: %s", 
                                             {k: v for k, v in self.request.items() if k != 'audio'})
-                            self.request['voice_changed'] = datetime.datetime.now().isoformat()
                             self.request['audio'] = response['audio']
                             return True
                         else:

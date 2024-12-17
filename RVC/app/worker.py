@@ -31,7 +31,7 @@ class VoiceChanger:
         "carnaval": {
             'model': 'Carnaval.pth',
             'index_path': 'logs/Carnaval/added_IVF701_Flat_nprobe_1_Carnaval_v2.index',
-            'pitch': 3
+            'pitch': 0
         },
         "lebedev": {
             'model': 'Lebedev.pth',
@@ -107,7 +107,10 @@ class VoiceChanger:
                 break
             audio_file = VoiceChanger.create_audio(audio, request_id, audio_temp_root)
             try:
-                generated = voice_changer.run(audio_file)
+                if model != "carnaval":
+                    generated = voice_changer.run(audio_file)
+                else:
+                    generated = VoiceChanger.encode_wav_to_base64(audio_file)
                 voice_changer.logger.info(f"Generated voice for {request_id} with model {model}")
                 redis.publish(return_channel, json.dumps({"request_id" : request_id, "audio": generated}))
             except Exception as e:
