@@ -198,6 +198,10 @@ class VoiceGeneration:
         try:
             self.logger.info("Changing voice for request: %s", {k: v for k, v in self.request.items() if k != 'audio'})
             
+            if self.request['celebrity_code'] == 'carnaval':
+                self.request['audio'] = audio_data
+                return True
+            
             self.redis.publish(self.vc_request, json.dumps({
                 "request_id": self.request['id'], 
                 "audio": audio_data, 

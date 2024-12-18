@@ -130,4 +130,4 @@ async def reset_states():
     return jsonify({"message": "Bot states reset"}), 200
 
 def main():
-    app.run(host='localhost', port=5000)
+    app.run(host='0.0.0.0', port=5000)
