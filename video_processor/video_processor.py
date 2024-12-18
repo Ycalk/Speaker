@@ -67,9 +67,10 @@ class Worker:
                 
                 video1 = Video.from_url(lip_sync_url, f"temp/{request_id}_lip_sync.mp4")
                 video2 = Video(get_video_path(celebrity_code))
+                packshot = Video("data/packshot.mp4")
                 output_path = f"temp/{request_id}_out.mp4"
                 
-                processor._concatenate_videos(video1, video2, output_path)
+                processor._concatenate_videos(video1, video2, packshot, output_path)
                 listener.logger.info(f"Video concatenated and saved to {output_path}")
                 path_in_bucket = listener.get_path_in_bucket(celebrity_code, user_name)
                 listener.upload(output_path, path_in_bucket)
@@ -149,22 +150,24 @@ class VideoProcessor:
         
         return ImageSequenceClip(processed_frames, fps=clip.fps).resized(width=clip.w, height=clip.h).with_audio(clip.audio)
     
-    def _concatenate_videos(self, video1: Video, video2: Video, output_path: str):
+    def _concatenate_videos(self, video1: Video, video2: Video, packshot: Video, output_path: str):
         """Concatenates two video clips, applies a circular mask, and saves the final output."""
         
         video2_clip = video2.get_clip()
         video1_clip = video1.get_clip().resized(new_size=video2_clip.size)
+        video3_clip = packshot.get_clip().resized(new_size=video2_clip.size)
         
         video1_color_correct = self.color_correct_clip(video1_clip, video2_clip.get_frame(0))
         
         video1_masked = self._apply_circle_mask(video1_color_correct)
         video2_masked = self._apply_circle_mask(video2_clip)
+        video3_masked = self._apply_circle_mask(video3_clip)
         
         intermediate_clip = self._get_intermediate_clip(video1_masked, video2_masked)
         intermediate_clip_masked = self._apply_circle_mask(intermediate_clip)
         intermediate_clip_speed_up = MultiplySpeed(factor=15).apply(intermediate_clip_masked)
         
-        final_video = concatenate_videoclips([video1_masked, intermediate_clip_speed_up, video2_masked], method="compose")
+        final_video = concatenate_videoclips([video1_masked, intermediate_clip_speed_up, video2_masked, video3_masked], method="compose")
         
         final_video = final_video.with_effects([Resize(height=480, width=480)])
 
