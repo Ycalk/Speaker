@@ -138,24 +138,26 @@ class VideoProcessor:
     def _get_intermediate_clip(self, video1: VideoFileClip, video2: VideoFileClip) -> ImageSequenceClip:
         frame1 = list(video1.iter_frames())[-1]
         frame2 = video2.get_frame(0)
+        
+        frame2 = cv2.resize(frame2, (frame1.shape[1], frame1.shape[0]))
+        
         intermediate_frames = self._generate_intermediate_frames(frame1, frame2)
         return ImageSequenceClip(intermediate_frames, fps=video1.fps).resized(width=video1.w, height=video1.h)
     
     def color_correct_clip(self, clip: VideoFileClip, ref_frame) -> ImageSequenceClip:
         processed_frames = [self._match_colors(frame, ref_frame) for frame in clip.iter_frames(dtype="uint8")]
-
-        for frame in self._generate_intermediate_frames(processed_frames[-1], ref_frame):
-            processed_frames.append(frame)
         
         return ImageSequenceClip(processed_frames, fps=clip.fps).resized(width=clip.w, height=clip.h).with_audio(clip.audio)
     
     def _concatenate_videos(self, video1: Video, video2: Video, output_path: str):
         """Concatenates two video clips, applies a circular mask, and saves the final output."""
+        
         video2_clip = video2.get_clip()
+        video1_clip = video1.get_clip().resized(new_size=video2_clip.size)
         
-        video1_corrected = self.color_correct_clip(video1.get_clip(), video2_clip.get_frame(0))
+        video1_color_correct = self.color_correct_clip(video1_clip, video2_clip.get_frame(0))
         
-        video1_masked = self._apply_circle_mask(video1_corrected)
+        video1_masked = self._apply_circle_mask(video1_color_correct)
         video2_masked = self._apply_circle_mask(video2_clip)
         
         intermediate_clip = self._get_intermediate_clip(video1_masked, video2_masked)
