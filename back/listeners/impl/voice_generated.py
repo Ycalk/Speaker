@@ -86,6 +86,7 @@ class VoiceGeneratedListener (Listener):
                 self.logger.info("Video already generated for user: %s", data['user_name'])
                 path = f'video/{data["celebrity_code"].replace("_", "/")}/{data["user_name"]}.mp4'
                 data['video'] = self.get_video_url(path)
+                await asyncio.sleep(15)
                 await self._redis.publish(self.video_generated_channel, json.dumps(data))
             else:
                 await self._redis.rpush(self.queue_name, json.dumps(data))
