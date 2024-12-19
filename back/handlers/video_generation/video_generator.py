@@ -21,7 +21,7 @@ class VideoGenerator(Generator):
         self.logger = logging.getLogger(__name__)
     
     def _start_generating(self, message):
-        self.logger.info("Starting voice generation for message: %s", message)
+        self.logger.info("Starting video generation for message: %s", message)
         try:
             new_generation = VideoGeneration(self, json.loads(message))
             new_generation.start()

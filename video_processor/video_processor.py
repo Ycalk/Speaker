@@ -127,7 +127,7 @@ class VideoProcessor:
 
         return cv2.cvtColor(matched_lab, cv2.COLOR_Lab2RGB)
 
-    def _generate_intermediate_frames(self, frame1, frame2, num_frames=10):
+    def _generate_intermediate_frames(self, frame1, frame2, num_frames=20):
         """Generates intermediate frames between two frames."""
         intermediate_frames = []
         for i in range(1, num_frames + 1):
@@ -165,7 +165,7 @@ class VideoProcessor:
         
         intermediate_clip = self._get_intermediate_clip(video1_masked, video2_masked)
         intermediate_clip_masked = self._apply_circle_mask(intermediate_clip)
-        intermediate_clip_speed_up = MultiplySpeed(factor=15).apply(intermediate_clip_masked)
+        intermediate_clip_speed_up = MultiplySpeed(factor=5).apply(intermediate_clip_masked)
         
         final_video = concatenate_videoclips([video1_masked, intermediate_clip_speed_up, video2_masked, video3_masked], method="compose")
         
