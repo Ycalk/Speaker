@@ -58,6 +58,8 @@ class ListenerImpl(Listener):
         self.__redis_fsm = aioredis.from_url(f"{redis_storage}", db=fsm_storage_table)
         super().__init__(appType, redis_storage, generating_queue_table)
         self.texts = json.load(open('utils/texts.json', 'r', encoding='utf-8'))
+        with open('utils/stickers.json', 'r', encoding='utf-8') as f:
+            self.stickers = json.load(f)
 
     async def __clear_state(self, user_id):
         await self.__redis_fsm.delete(f"fsm:{user_id}:{user_id}:state")
@@ -91,6 +93,7 @@ class ListenerImpl(Listener):
         video_note = await self.__bot.send_video_note(user_id, video)
         await self.__clear_state(user_id)
         await self.__send_congratulations(user_id, data['celebrity_code'], data['user_name'], data['gender'], video_note.video_note.file_id)
+        await self.__bot.send_sticker(user_id, self.stickers['share'])
     
     async def notification_handler(self, notification: NotificationModel):
         if notification.notification_type == NotificationModel.NotificationType.ERROR:

@@ -11,7 +11,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 bot_token = os.getenv('TOKEN')
-
+with open('utils/stickers.json', 'r', encoding='utf-8') as f:
+    stickers = json.load(f)
 
 texts = json.load(open('utils/texts.json', 'r', encoding='utf-8'))
 connector = Connector(AppType.TELEGRAM, os.getenv('SERVER_URL'), os.getenv('SERVER_PORT'), os.getenv('REDIS_STORAGE'))

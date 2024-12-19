@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import Message
-from bot import texts, queue_listener
+from bot import texts, queue_listener, stickers
 from keyboards.keyboards import celebrities_keyboard, behavior_keyboard, subscribe_keyboard
 from keyboards.keyboards import CreateCallback
 from aiogram.fsm.context import FSMContext
@@ -29,15 +29,16 @@ async def create(query: CallbackQuery, state: FSMContext):
     
     if ((await connector.redis.get_count_of_generations(query.message.chat.id)) != 0 and 
         (not (await bot_utils.check_user_subscription(query.message.chat.id)))):
-        await query.message.edit_text(
+        await query.message.edit_reply_markup(reply_markup=None)
+        await query.message.answer(
             text=texts['messages']['channel_subscribe'],
             reply_markup=subscribe_keyboard(bot_utils.channel_url))
         return
     
     try:
         celebrities = await connector.get_celebrities()
-            
-        await query.message.edit_text(
+        await query.message.edit_reply_markup(reply_markup=None)
+        await query.message.answer(
             text=texts['messages']['choose_celebrity'], 
             reply_markup=celebrities_keyboard(celebrities))
         await state.set_state(GenerateState.celebrity_name)
@@ -97,9 +98,10 @@ async def behavior(query: CallbackQuery, state: FSMContext):
     await state.set_state(GenerateState.generating)
     queue_length = await connector.get_queue_length()
     queue_message = await query.message.answer(texts['messages']['queue_length'].format(queue_length=queue_length))
-    queue_listener.add_listening_user(query.message.chat.id, queue_message.message_id)
+    await query.message.answer_sticker(stickers['generating'])
     await connector.redis.create_generation_request(
         query.message.chat.id, 
         f"{user_data['celebrity']['code']}_{query.data}", 
         user_data['name'], user_data['gender'])
+    queue_listener.add_listening_user(query.message.chat.id, queue_message.message_id)
     
