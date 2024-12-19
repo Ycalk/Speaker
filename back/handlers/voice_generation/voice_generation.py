@@ -7,7 +7,7 @@ import time
 import requests
 import os
 from handlers.generator import Generator
-from pydub import AudioSegment
+from pydub import AudioSegment, silence
 from handlers.generator import Update, Error
 
 class _PromptGenerator:
@@ -27,7 +27,7 @@ class _PromptGenerator:
     @staticmethod
     def get_vidos_prompt(name: str) -> dict:
         prompt = _PromptGenerator.get_default_prompt()
-        prompt['text'] = f"**{name}**!"
+        prompt['text'] = f"**{name}**!" * 3
         prompt['hints'][0]['voice'] = "lera"
         prompt['hints'][1]['role'] = "friendly"
         prompt['hints'][2]['speed'] = "1.1"
@@ -44,7 +44,7 @@ class _PromptGenerator:
     @staticmethod
     def get_carnaval_prompt(name: str) -> dict:
         prompt = _PromptGenerator.get_default_prompt()
-        prompt['text'] = f"**{name}**!"
+        prompt['text'] = f"**{name}**!" * 3
         prompt['hints'][0]['voice'] = "marina"
         prompt['hints'][1]['role'] = "friendly"
         prompt['hints'][2]['speed'] = "1.1"
@@ -53,7 +53,7 @@ class _PromptGenerator:
     @staticmethod
     def get_lebedev_prompt(name: str) -> dict:
         prompt = _PromptGenerator.get_default_prompt()
-        prompt['text'] = f"**{name}**!"
+        prompt['text'] = f"**{name}**!" * 3
         prompt['hints'][0]['voice'] = "filipp"
         prompt['hints'][2]['speed'] = "1.1"
         prompt['hints'].pop(1)
@@ -121,11 +121,7 @@ class VoiceGeneration:
     def status(self):
         return self.__status
     
-    def add_silence(self, audio_str):
-        path = f"{os.getenv('audio_data_temp')}/{self.request['id']}.wav"
-        with open(path, "wb") as audio_file:
-            audio_file.write(base64.b64decode(audio_str))
-        audio = AudioSegment.from_file(path)
+    def add_silence(self, audio: AudioSegment) -> str:
         audio_len = len(audio)
         if (audio_len < 1100):
             silence = AudioSegment.silent(duration=1100 - audio_len)
@@ -135,8 +131,22 @@ class VoiceGeneration:
         with open(save_path, "rb") as audio_file:
             res = base64.b64encode(audio_file.read()).decode('utf-8')
         os.remove(save_path)
-        os.remove(path)
         return res
+    
+    def get_name_segment(self, audio_str) -> AudioSegment:
+        path = f"{os.getenv('audio_data_temp')}/{self.request['id']}.wav"
+        with open(path, "wb") as audio_file:
+            audio_file.write(base64.b64decode(audio_str))
+        audio = AudioSegment.from_file(path)
+        
+        min_silence_len = 200
+        silence_thresh = audio.dBFS - 16
+        silences = silence.detect_silence(audio, min_silence_len=min_silence_len, silence_thresh=silence_thresh)
+        
+        if silences:
+            last_pause_end = silences[-2][1]
+            os.remove(path)
+            return audio[last_pause_end:]
     
     def start(self):
         self.request['voice_generation_start'] = datetime.datetime.now().isoformat()
@@ -157,7 +167,6 @@ class VoiceGeneration:
                 self.logger.info("TTS generation successful for request: %s", 
                                  {k: v for k, v in self.request.items() if k != 'audio'})
                 
-                audio_data = self.add_silence(audio_data)
                 self.logger.info("Added silence to audio data for request: %s", 
                                  {k: v for k, v in self.request.items() if k != 'audio'})
                 self.g.send_notification(Update.TTS_GENERATED, 
@@ -169,8 +178,19 @@ class VoiceGeneration:
                     self.g.send_notification(Error.VOICE_FAILED,
                                              self.request['user_id'], self.request['app_type'])
                 else:
-                    self.__status = VoiceGenerationStatus.COMPLETED
-                    self.g.send_notification(Update.VOICE_GENERATED,
+                    try:
+                        name_segment = self.get_name_segment(audio_data)
+                        self.request['audio'] = self.add_silence(name_segment)
+                        self.__status = VoiceGenerationStatus.COMPLETED
+                        self.g.send_notification(Update.VOICE_GENERATED,
+                                                self.request['user_id'], self.request['app_type'])
+                        self.logger.info("Voice generation successful for request: %s",
+                                        {k: v for k, v in self.request.items() if k != 'audio'})
+                    except Exception as e:
+                        self.__status = VoiceGenerationStatus.FAILED
+                        self.logger.error("An error occurred: %s", e)
+                        self.request['error'] = f"An error occurred: {str(e)}"
+                        self.g.send_notification(Error.TTS_FAILED,
                                              self.request['user_id'], self.request['app_type'])
             else:
                 self.__status = VoiceGenerationStatus.FAILED
