@@ -4,12 +4,16 @@
         "code": "vidos"
     },
     {
+        "name": "Азамат Мусагалиев",
+        "code": "musagaliev"
+    },
+    {
         "name": "Сергей Бурунов",
         "code": "burunov"
     },
     {
-        "name": "Азамат Мусагалиев",
-        "code": "musagaliev"
+        "name": "Денис Дорохов",
+        "code": "dorohov"
     },
     {
         "name": "Валя Карнавал",
@@ -22,5 +26,9 @@
     {
         "name": "Варя Щербакова",
         "code": "shcherbakova"
+    },
+    {
+        "name": "Карина Кросс",
+        "code": "cross"
     }
 ]

@@ -42,6 +42,16 @@ class VoiceChanger:
             'model': 'Shcherbakova.pth',
             'index_path': 'logs/Shcherbakova/added_IVF683_Flat_nprobe_1_Shcherbakova_v2.index',
             'pitch': 0
+        },
+        "dorohov": {
+            'model': 'Dorohov.pth',
+            'index_path': 'logs/Dorohov/added_IVF561_Flat_nprobe_1_Dorohov_v2.index',
+            'pitch': -11
+        },
+        "cross": {
+            'model': 'Cross.pth',
+            'index_path': 'logs/Cross/added_IVF585_Flat_nprobe_1_Cross_v2.index',
+            'pitch': 0
         }
     }
 

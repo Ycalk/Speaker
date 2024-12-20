@@ -20,6 +20,8 @@ if __name__ == '__main__':
     carnaval_queue = Queue()
     lebedev_queue = Queue()
     shcherbakova_queue = Queue()
+    dorohov_queue = Queue()
+    cross_queue = Queue()
     
     queues = {
         'vidos': vidos_queue,
@@ -27,7 +29,9 @@ if __name__ == '__main__':
         'musagaliev': musagaliev_queue,
         'carnaval': carnaval_queue,
         'lebedev': lebedev_queue,
-        'shcherbakova': shcherbakova_queue
+        'shcherbakova': shcherbakova_queue,
+        'dorohov': dorohov_queue,
+        'cross': cross_queue
     }
     
     if os.getenv('REDIS_URL') is None:
@@ -53,6 +57,12 @@ if __name__ == '__main__':
     shcherbakova_worker = Process(target=VoiceChanger.start_voice_changer,
                                 args=('shcherbakova', os.getenv('REDIS_URL'), os.getenv('response_channel'), shcherbakova_queue,))
     
+    dorohov_worker = Process(target=VoiceChanger.start_voice_changer,
+                                args=('dorohov', os.getenv('REDIS_URL'), os.getenv('response_channel'), dorohov_queue,))
+    
+    cross_worker = Process(target=VoiceChanger.start_voice_changer,
+                                args=('cross', os.getenv('REDIS_URL'), os.getenv('response_channel'), cross_queue,))
+    
     vidos_worker.start()
     atexit.register(exit_handler, vidos_worker)
     
@@ -70,5 +80,11 @@ if __name__ == '__main__':
     
     shcherbakova_worker.start()
     atexit.register(exit_handler, shcherbakova_worker)
+    
+    dorohov_worker.start()
+    atexit.register(exit_handler, dorohov_worker)
+    
+    cross_worker.start()
+    atexit.register(exit_handler, cross_worker)
     
     listener.start_listening()
