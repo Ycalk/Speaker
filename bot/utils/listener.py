@@ -1,7 +1,7 @@
 import enum
 import json
 from utils.connector import AppType
-from keyboards.keyboards import share_keyboard
+from keyboards.keyboards import main_keyboard
 import aioredis
 from aiogram import Bot
 from aiogram.types import URLInputFile
@@ -65,7 +65,7 @@ class ListenerImpl(Listener):
         await self.__redis_fsm.delete(f"fsm:{user_id}:{user_id}:state")
     
     
-    async def __send_congratulations(self, user_id, celebrity_code, user_name, gender, video_note_id):
+    async def __send_congratulations(self, user_id, celebrity_code, user_name, gender):
         ending = ""
         if not gender or gender == "Gender.UNKNOWN":
             ending = "(а)"
@@ -75,24 +75,24 @@ class ListenerImpl(Listener):
             await self.__bot.send_message(user_id, 
                                           self.texts['messages']['on_create_good_behavior'].format(
                                               name=user_name.capitalize(), ending=ending),
-                                          reply_markup=share_keyboard(video_note_id))
+                                          reply_markup=main_keyboard(is_new=True))
         elif celebrity_code.startswith("vidos_bad"):
             await self.__bot.send_message(user_id, 
                                           self.texts['messages']['on_create_bad_behavior'].format(
                                               name=user_name.capitalize(), ending=ending),
-                                          reply_markup=share_keyboard(video_note_id))
+                                          reply_markup=main_keyboard(is_new=True))
         else:
             await self.__bot.send_message(user_id, 
                                           self.texts['messages']['on_create'],
-                                          reply_markup=share_keyboard(video_note_id))
+                                          reply_markup=main_keyboard(is_new=True))
         
     
     async def handler(self, data: dict):
         video = URLInputFile(data['video'])
         user_id = data['user_id']
-        video_note = await self.__bot.send_video_note(user_id, video)
+        await self.__bot.send_video_note(user_id, video)
         await self.__clear_state(user_id)
-        await self.__send_congratulations(user_id, data['celebrity_code'], data['user_name'], data['gender'], video_note.video_note.file_id)
+        await self.__send_congratulations(user_id, data['celebrity_code'], data['user_name'], data['gender'])
         await self.__bot.send_sticker(user_id, self.stickers['share'])
     
     async def notification_handler(self, notification: NotificationModel):

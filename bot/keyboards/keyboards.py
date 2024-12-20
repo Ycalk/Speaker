@@ -17,13 +17,6 @@ def main_keyboard(is_new = False) -> InlineKeyboardMarkup:
                               callback_data=CreateCallback(message='create').pack())],
     ],)
 
-def share_keyboard(video_note_id):
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=buttons_texts['create_new'], 
-                              callback_data=CreateCallback(message='create').pack())],
-        [InlineKeyboardButton(text=buttons_texts['share'], switch_inline_query=video_note_id)]
-    ],)
-
 def celebrities_keyboard(celebrities) -> InlineKeyboardMarkup:
     
     buttons = [InlineKeyboardButton(text=celebrity['name'], callback_data=celebrity['code']) for celebrity in celebrities]

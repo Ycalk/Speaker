@@ -43,8 +43,8 @@ async def create(query: CallbackQuery, state: FSMContext):
             reply_markup=celebrities_keyboard(celebrities))
         await state.set_state(GenerateState.celebrity_name)
     except Exception as e:
-        await query.message.edit_text(
-            text=texts['messages']['maintenance'])
+        await query.message.delete()
+        await query.message.answer_sticker(stickers['maintenance'])
 
 @generate_router.callback_query(GenerateState.celebrity_name)
 async def celebrity_name(query: CallbackQuery, state: FSMContext):
@@ -73,6 +73,7 @@ async def user_name(message: Message, state: FSMContext):
         queue_length = await connector.get_queue_length()
         queue_message = await message.answer(texts['messages']['queue_length'].format(queue_length=queue_length))
         queue_listener.add_listening_user(message.chat.id, queue_message.message_id)
+        await message.answer_sticker(stickers['generating'])
         await connector.redis.create_generation_request(
             message.from_user.id, 
             user_data['celebrity']['code'], 
