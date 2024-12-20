@@ -87,9 +87,9 @@ class VoiceGeneratedListener (Listener):
                 path = f'video/{data["celebrity_code"].replace("_", "/")}/{data["user_name"]}.mp4'
                 data['video'] = self.get_video_url(path)
                 await asyncio.sleep(15)
-                await self._redis.publish(self.video_generated_channel, json.dumps(data))
+                await self._redis.publish(self.video_generated_channel, json.dumps(data, ensure_ascii=False))
             else:
-                await self._redis.rpush(self.queue_name, json.dumps(data))
+                await self._redis.rpush(self.queue_name, json.dumps(data, ensure_ascii=False))
         
         except Exception as e:
             self.logger.error("An error occurred while handling the message in voice_generated_queue: %s", e)

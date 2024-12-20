@@ -27,7 +27,7 @@ class _PromptGenerator:
     @staticmethod
     def get_vidos_prompt(name: str) -> dict:
         prompt = _PromptGenerator.get_default_prompt()
-        prompt['text'] = f"**{name}**!" * 3
+        prompt['text'] = f"Привет <[small]> **{name}**! <[small]> **{name.upper()}**!"
         prompt['hints'][0]['voice'] = "lera"
         prompt['hints'][1]['role'] = "friendly"
         prompt['hints'][2]['speed'] = "1.1"
@@ -44,7 +44,7 @@ class _PromptGenerator:
     @staticmethod
     def get_carnaval_prompt(name: str) -> dict:
         prompt = _PromptGenerator.get_default_prompt()
-        prompt['text'] = f"**{name}**!" * 3
+        prompt['text'] = f"Привет <[small]> **{name}**! <[small]> **{name.upper()}**!"
         prompt['hints'][0]['voice'] = "marina"
         prompt['hints'][1]['role'] = "friendly"
         prompt['hints'][2]['speed'] = "1.1"
@@ -53,7 +53,7 @@ class _PromptGenerator:
     @staticmethod
     def get_lebedev_prompt(name: str) -> dict:
         prompt = _PromptGenerator.get_default_prompt()
-        prompt['text'] = f"**{name}**!" * 3
+        prompt['text'] = f"Привет <[small]> **{name}**! <[small]> **{name.upper()}**!"
         prompt['hints'][0]['voice'] = "filipp"
         prompt['hints'][2]['speed'] = "1.1"
         prompt['hints'].pop(1)
@@ -144,9 +144,9 @@ class VoiceGeneration:
         silences = silence.detect_silence(audio, min_silence_len=min_silence_len, silence_thresh=silence_thresh)
         
         if silences:
-            last_pause_end = silences[-2][1]
+            last_pause_end = silences[-2][0]
             os.remove(path)
-            return audio[last_pause_end:]
+            return audio[last_pause_end + 100:]
     
     def start(self):
         self.request['voice_generation_start'] = datetime.datetime.now().isoformat()
@@ -164,11 +164,8 @@ class VoiceGeneration:
             if response.status_code == 200:
                 self.__status = VoiceGenerationStatus.VOICE_CHANGE
                 audio_data = response.json()['result']['audioChunk']['data']
-                self.logger.info("TTS generation successful for request: %s", 
-                                 {k: v for k, v in self.request.items() if k != 'audio'})
+                self.logger.info(f"TTS generation successful for request:\nCelebrity_code: {self.request['celebrity_code']}\nName: {self.request['user_name']}")
                 
-                self.logger.info("Added silence to audio data for request: %s", 
-                                 {k: v for k, v in self.request.items() if k != 'audio'})
                 self.g.send_notification(Update.TTS_GENERATED, 
                                          self.request['user_id'], self.request['app_type'])
                 res = self.voice_change(audio_data)
@@ -179,13 +176,12 @@ class VoiceGeneration:
                                              self.request['user_id'], self.request['app_type'])
                 else:
                     try:
-                        name_segment = self.get_name_segment(audio_data)
+                        name_segment = self.get_name_segment(self.request['audio'])
                         self.request['audio'] = self.add_silence(name_segment)
                         self.__status = VoiceGenerationStatus.COMPLETED
                         self.g.send_notification(Update.VOICE_GENERATED,
                                                 self.request['user_id'], self.request['app_type'])
-                        self.logger.info("Voice generation successful for request: %s",
-                                        {k: v for k, v in self.request.items() if k != 'audio'})
+                        self.logger.info(f"Voice generation successful for request: \nCelebrity_code: {self.request['celebrity_code']}\nName: {self.request['user_name']}")
                     except Exception as e:
                         self.__status = VoiceGenerationStatus.FAILED
                         self.logger.error("An error occurred: %s", e)
