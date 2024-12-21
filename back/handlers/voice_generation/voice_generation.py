@@ -71,6 +71,14 @@ class _PromptGenerator:
     def get_cross_prompt(name: str) -> dict:
         return _PromptGenerator.get_vidos_prompt(name)
     
+    def get_chebatkov_prompt(name: str) -> str:
+        prompt = _PromptGenerator.get_default_prompt()
+        prompt['text'] = f"Привет <[small]> **{name}**! <[small]> **{name.upper()}**!"
+        prompt['hints'][0]['voice'] = "ermil"
+        prompt['hints'][1]['role'] = "neutral"
+        prompt['hints'][2]['speed'] = "1"
+        return prompt
+    
 class VoiceGenerationStatus(enum.Enum):
     CREATED = 0
     GENERATING_VOICE = 1
@@ -79,19 +87,20 @@ class VoiceGenerationStatus(enum.Enum):
     FAILED = 4
 
 class VoiceGeneration:
-    __celebrity_to_model ={
-        "vidos_good_v1": "vidos",
-        "vidos_good_v2": "vidos",
-        "vidos_bad_v1": "vidos",
-        "vidos_bad_v2": "vidos",
-        "vidos_bad_v3": "vidos",
-        "burunov" : "burunov",
-        "musagaliev": "musagaliev",
-        "carnaval": "carnaval",
-        "lebedev": "lebedev",
-        "shcherbakova": "shcherbakova",
-        "dorohov": "dorohov",
-        "cross": "cross"
+    __celebrities_info ={
+        "vidos_good_v1": ("vidos", _PromptGenerator.get_vidos_prompt),
+        "vidos_good_v2": ("vidos", _PromptGenerator.get_vidos_prompt),
+        "vidos_bad_v1": ("vidos", _PromptGenerator.get_vidos_prompt),
+        "vidos_bad_v2": ("vidos", _PromptGenerator.get_vidos_prompt),
+        "vidos_bad_v3": ("vidos", _PromptGenerator.get_vidos_prompt),
+        "burunov" : ("burunov", _PromptGenerator.get_burunov_prompt),
+        "musagaliev": ("musagaliev", _PromptGenerator.get_musagaliev_prompt),
+        "carnaval": ("carnaval", _PromptGenerator.get_carnaval_prompt),
+        "lebedev": ("lebedev", _PromptGenerator.get_lebedev_prompt),
+        "shcherbakova": ("shcherbakova", _PromptGenerator.get_shcherbakova_prompt),
+        "dorohov": ("dorohov", _PromptGenerator.get_dorohov_prompt),
+        "cross": ("cross", _PromptGenerator.get_cross_prompt),
+        "chebatkov": ("chebatkov", _PromptGenerator.get_chebatkov_prompt),
     }
     
     
@@ -110,23 +119,8 @@ class VoiceGeneration:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
         
-        if self.request['celebrity_code'] in ("vidos_good_v1", "vidos_good_v2", 
-                                              "vidos_bad_v1", "vidos_bad_v2", "vidos_bad_v3"):
-            self.__prompt = _PromptGenerator.get_vidos_prompt(self.request['user_name'])
-        elif self.request['celebrity_code'] == "burunov":
-            self.__prompt = _PromptGenerator.get_burunov_prompt(self.request['user_name'])
-        elif self.request['celebrity_code'] == "musagaliev":
-            self.__prompt = _PromptGenerator.get_musagaliev_prompt(self.request['user_name'])
-        elif self.request['celebrity_code'] == "carnaval":
-            self.__prompt = _PromptGenerator.get_carnaval_prompt(self.request['user_name'])
-        elif self.request['celebrity_code'] == "lebedev":
-            self.__prompt = _PromptGenerator.get_lebedev_prompt(self.request['user_name'])
-        elif self.request['celebrity_code'] == "shcherbakova":
-            self.__prompt = _PromptGenerator.get_shcherbakova_prompt(self.request['user_name'])
-        elif self.request['celebrity_code'] == "dorohov":
-            self.__prompt = _PromptGenerator.get_dorohov_prompt(self.request['user_name'])
-        elif self.request['celebrity_code'] == "cross":
-            self.__prompt = _PromptGenerator.get_cross_prompt(self.request['user_name'])
+        prompt_generator = VoiceGeneration.__celebrities_info[self.request['celebrity_code']][1]
+        self.__prompt = prompt_generator(self.request['user_name'])
         
         self.logger.info("Generated prompt %s for user: %s", self.request['celebrity_code'], self.request['user_name'])
         
@@ -234,7 +228,7 @@ class VoiceGeneration:
             self.redis.publish(self.vc_request, json.dumps({
                 "request_id": self.request['id'], 
                 "audio": audio_data, 
-                "model": VoiceGeneration.__celebrity_to_model[self.request['celebrity_code']]
+                "model": VoiceGeneration.__celebrities_info[self.request['celebrity_code']][0]
             }))
             
             pubsub = self.redis.pubsub()

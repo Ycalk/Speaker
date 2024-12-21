@@ -30,7 +30,7 @@ class VoiceChanger:
         },
         "carnaval": {
             'model': 'Carnaval.pth',
-            'index_path': 'logs/Carnaval/added_IVF701_Flat_nprobe_1_Carnaval_v2.index',
+            'index_path': 'logs/Carnaval/added_IVF685_Flat_nprobe_1_Carnaval_v2.index',
             'pitch': 0
         },
         "lebedev": {
@@ -51,6 +51,11 @@ class VoiceChanger:
         "cross": {
             'model': 'Cross.pth',
             'index_path': 'logs/Cross/added_IVF585_Flat_nprobe_1_Cross_v2.index',
+            'pitch': 0
+        },
+        "chebatkov": {
+            'model': 'Chebatkov.pth',
+            'index_path': 'logs/Chebatkov/added_IVF50_Flat_nprobe_1_Chebatkov_v2.index',
             'pitch': 0
         }
     }
@@ -117,7 +122,7 @@ class VoiceChanger:
                 break
             audio_file = VoiceChanger.create_audio(audio, request_id, audio_temp_root)
             try:
-                generated = VoiceChanger.encode_wav_to_base64(audio_file)
+                generated = voice_changer.run(audio_file)
                 voice_changer.logger.info(f"Generated voice for {request_id} with model {model}")
                 redis.publish(return_channel, json.dumps({"request_id" : request_id, "audio": generated}))
             except Exception as e:
