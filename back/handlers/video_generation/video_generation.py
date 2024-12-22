@@ -12,7 +12,7 @@ from handlers.generator import Update, Error
 class RequestGenerator:
     """Class to generate requests for lip sync API."""
     DEFAULT_REQUEST = {
-        "model": "lipsync-1.7.1",
+        "model": "lipsync-1.8.0",
         "input": [
             {"type": "video", "url": ""},
             {"type": "audio", "url": ""}
@@ -93,8 +93,8 @@ class VideoGeneration:
             return video_url
 
         except Exception as e:
-            self.logger.error("Error during lip sync creation: %s.\nResponse was %s\nRequest was: %s", 
-                              e, response, self.request)
+            self.logger.error("Error during lip sync creation: %s.\nRequest was: %s", 
+                              e, self.request)
             self.g.send_notification(Error.LIP_SYNC_FAILED,
                                      self.request['user_id'], self.request['app_type'])
             return None

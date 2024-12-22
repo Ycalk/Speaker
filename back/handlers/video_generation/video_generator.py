@@ -4,7 +4,7 @@ from handlers.generator import Generator
 import json
 
 from handlers.video_generation.video_generation import VideoGeneration, VideoGenerationStatus
-
+from handlers.generator import Error
 
 class VideoGenerator(Generator):
     __max_threads = 10
@@ -29,3 +29,5 @@ class VideoGenerator(Generator):
             self.logger.error("Failed to decode JSON message: %s", e)
         except Exception as e:
             self.logger.error("An error occurred while video generating: %s", e)
+            data = json.loads(message)
+            super().send_notification(Error.CANNOT_START, data['user_id'], data['app_type'])

@@ -69,7 +69,12 @@ class _PromptGenerator:
 
     @staticmethod
     def get_cross_prompt(name: str) -> dict:
-        return _PromptGenerator.get_vidos_prompt(name)
+        prompt = _PromptGenerator.get_default_prompt()
+        prompt['text'] = f"Привет <[small]> **{name}**! <[small]> **{name.upper()}**!"
+        prompt['hints'][0]['voice'] = "marina"
+        prompt['hints'][1]['role'] = "friendly"
+        prompt['hints'][2]['speed'] = "1.1"
+        return prompt
     
     def get_chebatkov_prompt(name: str) -> str:
         prompt = _PromptGenerator.get_default_prompt()
@@ -220,10 +225,6 @@ class VoiceGeneration:
     def voice_change(self, audio_data):
         try:
             self.logger.info("Changing voice for request: %s", {k: v for k, v in self.request.items() if k != 'audio'})
-            
-            if self.request['celebrity_code'] == 'carnaval':
-                self.request['audio'] = audio_data
-                return True
             
             self.redis.publish(self.vc_request, json.dumps({
                 "request_id": self.request['id'], 
