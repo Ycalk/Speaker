@@ -55,7 +55,7 @@ class GeneratingRequestListener (Listener):
         
         try:
             data['id'] = str(uuid.uuid4())
-            data['add_to_queue'] = datetime.datetime.now().isoformat()
+            data['request_received'] = datetime.datetime.now().isoformat()
             data['user_name'] = data['user_name'].lower()
             
             self.process_celebrity_code(data)

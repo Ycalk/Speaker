@@ -3,7 +3,7 @@ import aioredis
 import os
 from listeners.base import Listener
 import logging
-
+import datetime
 class VideoGeneratedListener (Listener):
     
     def __init__(self, storage: str, generating_queue_table: int, channel:str, s3, 
@@ -34,6 +34,7 @@ class VideoGeneratedListener (Listener):
             if 'video' not in data:
                 self.logger.error("No video data in the message: %s", data)
                 return
+            data['request_completed'] = datetime.datetime.now().isoformat()
             json_data = json.dumps(data)
             await self.add_data_to_storage(data, json_data)
             await self._redis.publish(self.generated_channel, json_data)
