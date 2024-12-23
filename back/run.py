@@ -7,6 +7,7 @@ from handlers.voice_generation.voice_generator import VoiceGenerator
 from listeners.listener import start_listeners
 from app import main as start_app
 from dotenv import load_dotenv
+from utils.whitelist.load_name import load_names
 import os
 
 
@@ -50,7 +51,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     with open('utils/config.json', 'r') as config_file:
         json_file = json.load(config_file)
-        
+        load_names(json_file, os.getenv('whitelist_path'))
         listeners = multiprocessing.Process(target=start_listeners, args=(os.getenv('REDIS_STORAGE'), json_file,))
         atexit.register(exit_handler, listeners)
         

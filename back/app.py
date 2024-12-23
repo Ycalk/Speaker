@@ -6,7 +6,7 @@ import re
 import os
 import aioredis
 from time import time
-import aioredis
+
 
 app = Quart(__name__)
 server_running_event = asyncio.Event()
@@ -14,6 +14,7 @@ server_running_event = asyncio.Event()
 NAME_API_URL = os.getenv('NAME_API_URL')
 VALIDATE_NAME_TIME_WINDOW = int(os.getenv('VALIDATE_NAME_TIME_WINDOW'))
 VALIDATE_NAME_SPAM_THRESHOLD = int(os.getenv('VALIDATE_NAME_SPAM_THRESHOLD'))
+
 
 @app.before_serving
 async def before_serving():
@@ -33,6 +34,8 @@ with open('utils/celebrities.json', 'r', encoding='utf-8') as celebrities_file:
 redis = aioredis.from_url(os.getenv('REDIS_STORAGE'), db=config_data['redis']['generating_queue_table'])
 to_generate_key = config_data['redis']['generating_queue_table_keys']['voice']
 fsm_redis = aioredis.from_url(os.getenv('REDIS_STORAGE'), db=config_data['redis']['fsm_storage_table'])
+saved_names_redis = aioredis.from_url(os.getenv('REDIS_STORAGE'), db=config_data['redis']['saved_names_table'])
+validate_info_redis = aioredis.from_url(os.getenv('REDIS_STORAGE'), db=config_data['redis']['validate_info_table'])
 
 @app.route('/config', methods=['GET'])
 async def get_config():
@@ -57,6 +60,8 @@ async def get_queue_length():
 
 validate_name_request_cache = {}
 
+
+
 @app.route('/validate', methods=['POST'])
 async def validate():
     global validate_name_request_cache
@@ -79,9 +84,16 @@ async def validate():
     if user_id not in validate_name_request_cache:
         validate_name_request_cache[user_id] = []
     
-    is_name, gender = await validate_name(name)
-    return jsonify({"valid": is_name, "gender": gender}), 200
+    if await saved_names_redis.exists(name):
+        data = json.loads(await saved_names_redis.get(name))
+        await validate_info_redis.sadd(name, str(user_id))
+        return jsonify(data), 200
     
+    is_name, gender = await validate_name(name)
+    await saved_names_redis.set(name, json.dumps({"valid": is_name, "gender": gender}))
+    await validate_info_redis.sadd(name, str(user_id))
+    return jsonify({"valid": is_name, "gender": gender}), 200
+
 async def validate_name(name: str) -> tuple[bool, str]:
     def parse_match(data):
         if data['confidence'] > 0.6:
