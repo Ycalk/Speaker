@@ -11,7 +11,7 @@ class Listener:
         self.queues = queues
         self.logger = logging.getLogger(__name__)
         
-    def start_listening(self):
+    def listen(self):
         pubsub = self.redis.pubsub()
         pubsub.subscribe(self.channel)
         self.logger.info(f"Listening to {self.channel}")
@@ -24,3 +24,8 @@ class Listener:
                 except Exception as e:
                     self.logger.error(f"Error processing message. Model {message['model']}")
                     self.logger.error(f"Error: {e}")
+    
+    @staticmethod
+    def start_listening(redis_url, channel, queues: dict[str, Queue]):
+        instance = Listener(redis_url, channel, queues)
+        instance.listen()

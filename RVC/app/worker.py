@@ -9,7 +9,7 @@ from configs.config import Config
 from infer.modules.vc.modules import VC
 import logging
 import os
-
+import signal
 
 class VoiceChanger:
     infos = {
@@ -111,11 +111,17 @@ class VoiceChanger:
     @staticmethod
     def start_voice_changer(model, redis_url, return_channel, queue: Queue):
         voice_changer = VoiceChanger(model, device='cpu')
+        signal.signal(signal.SIGTERM, voice_changer.handle_signal)
+        signal.signal(signal.SIGINT, voice_changer.handle_signal)
         audio_temp_root = os.getenv('audio_temp_root')
         redis = Redis.from_url(redis_url)
         voice_changer.logger.info(f"Starting voice changer for {model}")
         while True:
-            request_id, audio = queue.get()
+            try:
+                request_id, audio = queue.get(timeout=60)
+            except Exception as e:
+                voice_changer.logger.warning(f"No data in queue for model {model}: {e}")
+                continue
             voice_changer.logger.info(f"Received request for {request_id} with model {model}")
             if request_id is None and audio is None:
                 voice_changer.logger.info(f"Stopping voice changer for {model}")
@@ -128,3 +134,7 @@ class VoiceChanger:
             except Exception as e:
                 voice_changer.logger.error(f"Error processing request {request_id} with model {model}: {e}")
                 redis.publish(return_channel, json.dumps({"request_id" : request_id, "audio": ""}))
+    
+    def handle_signal(self, signum, frame):
+        self.logger.info(f"Received signal {signum}, terminating process.")
+        exit(0)
