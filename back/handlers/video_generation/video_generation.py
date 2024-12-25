@@ -5,7 +5,7 @@ import datetime
 import os
 import time
 import requests
-
+from handlers.video_generation.everypixel_lipsync_generator import EverypixelLipsyncGenerator
 from handlers.generator import Generator
 from handlers.generator import Update, Error
 
@@ -44,6 +44,7 @@ class VideoGeneration:
         self.processor_request_channel = generator.generation_config['video_processor_request_channel']
         self.processor_response_channel = generator.generation_config['video_processor_response_channel']
         self.g = generator
+        self.everypixel_lipsync: EverypixelLipsyncGenerator = generator.generation_config['everypixel_lipsync_generator']
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
@@ -63,9 +64,9 @@ class VideoGeneration:
         path = f"voice/{celeb_folder}/{self.request['user_name']}.wav"
         return self._get_storage_url('GENERATED_BUCKET', path)
 
-    def create_lip_sync(self) -> str:
+    def create_lip_sync_using_sync_so(self) -> str:
         """Creates a lip sync video and returns its url."""
-        self.logger.info("Creating lip sync for request: %s", self.request)
+        self.logger.info("Creating lip sync for request using sync so: %s", self.request)
 
         try:
             request = RequestGenerator.generate(self.get_video_url(), self.get_audio_url())
@@ -99,12 +100,42 @@ class VideoGeneration:
                                      self.request['user_id'], self.request['app_type'])
             return None
 
+    def create_lip_sync_using_everypixel(self) -> str:
+        self.logger.info("Creating lip sync for request using everypixel: %s", self.request)
+        try:
+            self.everypixel_lipsync.create_request(self.request['id'], self.get_audio_url(), self.get_video_url())
+
+            # Poll for completion
+            attempts = 0
+            while True:
+                video = self.everypixel_lipsync.get_video(self.request['id'])
+                if video:
+                    self.logger.info('Lip sync created %s', video)
+                    return video
+                attempts += 1
+                if attempts == 40:
+                    self.g.send_notification(Error.LIP_SYNC_FAILED,
+                                     self.request['user_id'], self.request['app_type'])
+                    self.logger.error("Error: cannot create lipsync using everypixel")
+                    return None
+                time.sleep(3)
+
+        except Exception as e:
+            self.logger.error("Error during lip sync creation: %s.\nRequest was: %s", 
+                              e, self.request)
+            self.g.send_notification(Error.LIP_SYNC_FAILED,
+                                     self.request['user_id'], self.request['app_type'])
+            return None
+
     def start(self):
         """Starts the video generation process."""
         self.request['video_generation_start'] = datetime.datetime.now().isoformat()
         self.logger.info("Starting video generation for request: %s", self.request)
-
-        lip_sync_url = self.create_lip_sync()
+        if self.request['celebrity_code'] in ('chebatkov', 'carnaval', 'shcherbakova', 'cross', 
+                                              'vidos_good_v1', 'vidos_good_v2', 'vidos_bad_v3', 'musagaliev'):
+            lip_sync_url = self.create_lip_sync_using_everypixel()
+        else:
+            lip_sync_url = self.create_lip_sync_using_sync_so()
         if lip_sync_url:
             self.g.send_notification(Update.LIP_SYNC_GENERATED,
                                      self.request['user_id'], self.request['app_type'])

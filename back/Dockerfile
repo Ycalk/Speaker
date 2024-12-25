@@ -23,7 +23,10 @@ ENV VOICE_CHANGER_REQUEST_CHANNEL=voice_change_request \
     SYNC_SO_API_URL=https://api.sync.so/v2/generate \
     VALIDATE_NAME_SPAM_THRESHOLD=5 \
     VALIDATE_NAME_TIME_WINDOW=10 \
-    video_processor_request_channel=video_processor_request
+    video_processor_request_channel=video_processor_request \
+    whitelist_path=utils/whitelist/whitelist.csv \
+    EVERYPIXEL_API_URL=https://api.everypixel.com/v1/lipsync/create \
+    EVERYPIXEL_API_CHECK_STATUS_URL=https://api.everypixel.com/v1/lipsync/status?task_id={task_id}
 
 EXPOSE 5000
 

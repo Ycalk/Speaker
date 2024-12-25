@@ -14,3 +14,5 @@ def load_names(config_data, file_path):
     for name in unique_names:
         redis.set(name, json.dumps({'valid': True, 'gender': 'NEUTRAL'}))
     
+    redis.set('Степа', json.dumps({'valid': True, 'gender': 'MALE'}))
+    
