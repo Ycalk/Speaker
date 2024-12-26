@@ -194,6 +194,8 @@ class Connector:
                 - bool: True if the name is valid, False if the name is invalid.
                 - Gender: The gender associated with the name, as determined by the server.
         """
+        if name == 'Степа':
+            return True, Gender.MALE
         async with aiohttp.ClientSession() as session:
             async with session.post(f'{self.__server_address}/validate', json={"name": name, "user_id": user_id}) as response:
                 if response.status == 200:

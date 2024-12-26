@@ -9,6 +9,10 @@ import os
 from handlers.generator import Generator
 from pydub import AudioSegment, silence
 from handlers.generator import Update, Error
+import librosa
+import noisereduce as nr
+import soundfile as sf
+
 
 class _PromptGenerator:
     @staticmethod
@@ -39,7 +43,12 @@ class _PromptGenerator:
     
     @staticmethod
     def get_musagaliev_prompt(name: str) -> dict:
-        return _PromptGenerator.get_vidos_prompt(name)
+        prompt = _PromptGenerator.get_default_prompt()
+        prompt['text'] = f"Привет <[small]> **{name}**! <[small]> **{name.upper()}**!"
+        prompt['hints'][0]['voice'] = "alexander"
+        prompt['hints'][1]['role'] = "neutral"
+        prompt['hints'][2]['speed'] = "1.1"
+        return prompt
     
     @staticmethod
     def get_carnaval_prompt(name: str) -> dict:
@@ -71,8 +80,8 @@ class _PromptGenerator:
     def get_cross_prompt(name: str) -> dict:
         prompt = _PromptGenerator.get_default_prompt()
         prompt['text'] = f"Привет <[small]> **{name}**! <[small]> **{name.upper()}**!"
-        prompt['hints'][0]['voice'] = "marina"
-        prompt['hints'][1]['role'] = "friendly"
+        prompt['hints'][0]['voice'] = "lera"
+        prompt['hints'][1]['role'] = "neutral"
         prompt['hints'][2]['speed'] = "1.1"
         return prompt
     
@@ -158,7 +167,24 @@ class VoiceGeneration:
         if silences:
             last_pause_end = silences[-2][0]
             os.remove(path)
-            return audio[last_pause_end + 100:]
+            return audio[last_pause_end + 150:]
+    
+    def reduce_noise(self, audio_str, gain_dB=10) -> str:
+        audio_file = f"{os.getenv('audio_data_temp')}/{self.request['id']}_noise.wav"
+        with open(audio_file, "wb") as file:
+            file.write(base64.b64decode(audio_str))
+        y, sr = librosa.load(audio_file, sr=None)
+        y_denoised = nr.reduce_noise(y=y, sr=sr)
+        gain = 10 ** (gain_dB / 20)
+        y_louder = y_denoised * gain
+        y_louder = librosa.util.normalize(y_louder)
+        output_file = f"{os.getenv('audio_data_temp')}/{self.request['id']}_noise_denoised.wav"
+        sf.write(output_file, y_louder, sr)
+        with open(output_file, "rb") as file:
+            res = base64.b64encode(file.read()).decode('utf-8')
+        os.remove(audio_file)
+        os.remove(output_file)
+        return res
     
     def start(self):
         self.request['voice_generation_start'] = datetime.datetime.now().isoformat()
@@ -190,6 +216,8 @@ class VoiceGeneration:
                     try:
                         name_segment = self.get_name_segment(self.request['audio'])
                         self.request['audio'] = self.add_silence(name_segment)
+                        if self.request['celebrity_code'] in ('cross'):
+                            self.request['audio'] = self.reduce_noise(self.request['audio'])
                         self.__status = VoiceGenerationStatus.COMPLETED
                         self.g.send_notification(Update.VOICE_GENERATED,
                                                 self.request['user_id'], self.request['app_type'])

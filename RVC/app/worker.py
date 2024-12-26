@@ -26,7 +26,7 @@ class VoiceChanger:
         "musagaliev": {
             'model': 'Musagaliev.pth',
             'index_path': 'logs/Musagaliev/added_IVF683_Flat_nprobe_1_Musagaliev_v2.index',
-            'pitch': -11
+            'pitch': 0
         },
         "carnaval": {
             'model': 'Carnaval.pth',
@@ -51,7 +51,7 @@ class VoiceChanger:
         "cross": {
             'model': 'Cross.pth',
             'index_path': 'logs/Cross/added_IVF585_Flat_nprobe_1_Cross_v2.index',
-            'pitch': 0
+            'pitch': 6
         },
         "chebatkov": {
             'model': 'Chebatkov.pth',
