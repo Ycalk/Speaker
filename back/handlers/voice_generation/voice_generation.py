@@ -216,7 +216,7 @@ class VoiceGeneration:
                     try:
                         name_segment = self.get_name_segment(self.request['audio'])
                         self.request['audio'] = self.add_silence(name_segment)
-                        if self.request['celebrity_code'] in ('cross'):
+                        if self.request['celebrity_code'] in ('cross', 'carnaval'):
                             self.request['audio'] = self.reduce_noise(self.request['audio'])
                         self.__status = VoiceGenerationStatus.COMPLETED
                         self.g.send_notification(Update.VOICE_GENERATED,

@@ -5,7 +5,7 @@ import json
 from handlers.voice_generation.voice_generation import VoiceGeneration, VoiceGenerationStatus
 
 class VoiceGenerator(Generator):
-    __max_threads = 10
+    __max_threads = 5
     
     def __init__(self, redis_storage, table: int, queue_name: str, tts_model_url: str, 
                  api_key: str, folder_id: str, return_voice_channel: str, 

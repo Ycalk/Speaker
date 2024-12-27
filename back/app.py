@@ -67,7 +67,7 @@ async def validate():
     global validate_name_request_cache
     
     json_data = await request.get_json()
-    name = json_data.get('name')
+    name = str(json_data.get('name')).lower()
     user_id = json_data.get('user_id')
     
     if not user_id:
