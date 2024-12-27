@@ -25,7 +25,7 @@ class QueueListener:
             if element is None:
                 break
             element = json.loads(element)
-            if "user_id" not in element:
+            if ("user_id" not in element) or ("app_type" not in element) or (element["app_type"] != "telegram"):
                 index += 1
                 continue
             user_id = int(element["user_id"])

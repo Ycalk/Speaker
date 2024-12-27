@@ -8,6 +8,9 @@ class CreateCallback(CallbackData, prefix="create"):
 class SubscribeCallback(CallbackData, prefix="subscribe"):
     action: str
 
+class CheckSettingsCallback(CallbackData, prefix="check"):
+    action: str
+
 buttons_texts = texts['buttons']
 
 def main_keyboard(is_new = False) -> InlineKeyboardMarkup:
@@ -16,6 +19,15 @@ def main_keyboard(is_new = False) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text=text, 
                               callback_data=CreateCallback(message='create').pack())],
     ],)
+
+def check_settings_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=buttons_texts['cheak'], url="tg://settings/privacy")],
+            [InlineKeyboardButton(text=buttons_texts['cheak_settings'], 
+                                callback_data=CheckSettingsCallback(action='check_permissions').pack())]
+        ]
+    )
 
 def celebrities_keyboard(celebrities) -> InlineKeyboardMarkup:
     
