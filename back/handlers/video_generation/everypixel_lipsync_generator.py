@@ -1,5 +1,6 @@
 import os
 import queue
+import random
 import requests
 import logging
 class EverypixelLipsyncGenerator:
@@ -54,6 +55,16 @@ class EverypixelAccount:
         self.__queue.put(EverypixelAccount.Request(request_id, audio_url, video_url), False)
     
     def check_status(self):
+        with open('proxy.txt', 'r') as file:
+            proxies = [line.strip() for line in file]
+        random_proxy = random.choice(proxies)
+        ip, port, username, password = random_proxy.split(":")
+
+        proxy = {
+            'http': f'http://{username}:{password}@{ip}:{port}',
+            'https': f'https://{username}:{password}@{ip}:{port}'
+        }
+
         if not self.__current_request:
             try:
                 self.__current_request = self.__queue.get_nowait()
@@ -68,7 +79,8 @@ class EverypixelAccount:
                         "audio_url": self.__current_request.audio_url,
                         "video_url": self.__current_request.video_url,
                     },
-                    auth=(self.__client_id, self.__secret)
+                    auth=(self.__client_id, self.__secret),
+                    proxies=proxy
                 )
                 self.__current_request.task_id = response.json().get("task_id")
             except Exception as _:
