@@ -54,7 +54,7 @@ class Generator:
     def start_listening(self):
         self.logger.info("Started listening to the queue: %s", self.__queue_name)
         while True:
-            if len(self.__threads._threads) < self.__max_threads:
+            if len(self.__threads._threads) <= self.__max_threads:
                 message = self.__redis.lpop(self.__queue_name)
                 if message is not None:
                     self.logger.info("Received message from queue: %s", message)
@@ -67,11 +67,8 @@ class Generator:
             time.sleep(1)
 
     def __start_generating_thread(self, message):
-        if len(self.__threads._threads) < self.__max_threads:
-            future = self.__threads.submit(self._start_generating, message)
-            self.logger.info("Started new generating thread: %s", future)
-        else:
-            self.logger.debug("Max threads limit reached. Cannot start new thread.")
+        future = self.__threads.submit(self._start_generating, message)
+        self.logger.info("Started new generating thread: %s", future)
     
     def _start_generating(self, message):
         raise NotImplementedError('Method not implemented')
