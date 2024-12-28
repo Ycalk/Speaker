@@ -1,6 +1,7 @@
 import os
 import queue
 import random
+import random
 import requests
 import logging
 class EverypixelLipsyncGenerator:
@@ -79,6 +80,8 @@ class EverypixelAccount:
                         "audio_url": self.__current_request.audio_url,
                         "video_url": self.__current_request.video_url,
                     },
+                    auth=(self.__client_id, self.__secret),
+                    proxies=proxy
                     auth=(self.__client_id, self.__secret),
                     proxies=proxy
                 )
