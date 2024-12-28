@@ -82,8 +82,6 @@ class EverypixelAccount:
                     },
                     auth=(self.__client_id, self.__secret),
                     proxies=proxy
-                    auth=(self.__client_id, self.__secret),
-                    proxies=proxy
                 )
                 self.__current_request.task_id = response.json().get("task_id")
             except Exception as _:
