@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import io
 import json
@@ -38,7 +37,7 @@ class VoiceGeneratedListener (Listener):
         try:
             short_code = celebrity_code.split('_')[0]
             self.s3.upload_file(audio_path, self.generated_bucket, f'voice/{short_code}/{name}.wav')
-        
+            self.logger.info(f"Audio was uploaded to {self.storage_url}/{self.generated_bucket}/voice/{short_code}/{name}.wav")
         except Exception as e:
             self.logger.error("An error occurred while uploading the audio: %s", e)
     
@@ -78,7 +77,6 @@ class VoiceGeneratedListener (Listener):
                 self.upload_audio(audio_path, data['celebrity_code'], data['user_name'])
                 data['audio'] = self._get_uploaded_audio_url(data)
                 self.logger.info("Audio was upload: %s", data)
-                self.logger.info("Sleeping for a while",)
                 os.remove(audio_path)
                 
             if self.check_if_video_generated(data['celebrity_code'], data['user_name']):

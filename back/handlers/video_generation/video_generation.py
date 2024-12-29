@@ -43,6 +43,7 @@ class VideoGeneration:
         self.return_video_channel = generator.generation_config['return_video_channel']
         self.processor_request_channel = generator.generation_config['video_processor_request_channel']
         self.processor_response_channel = generator.generation_config['video_processor_response_channel']
+        self.everypixel_celebs = generator.generation_config['everypixel_celebs']
         self.g = generator
         self.everypixel_lipsync: EverypixelLipsyncGenerator = generator.generation_config['everypixel_lipsync_generator']
         logging.basicConfig(level=logging.INFO)
@@ -131,8 +132,7 @@ class VideoGeneration:
         """Starts the video generation process."""
         self.request['video_generation_start'] = datetime.datetime.now().isoformat()
         self.logger.info("Starting video generation for request: %s", self.request)
-        if self.request['celebrity_code'] in ('chebatkov', 'carnaval', 'shcherbakova', 'cross', 
-                                              'vidos_good_v1', 'vidos_good_v2', 'vidos_bad_v3', 'musagaliev'):
+        if self.request['celebrity_code'] in self.everypixel_celebs:
             lip_sync_url = self.create_lip_sync_using_everypixel()
         else:
             lip_sync_url = self.create_lip_sync_using_sync_so()

@@ -1,11 +1,13 @@
 import logging
 from handlers.generator import Error, Generator
 import json
+import os
+
 
 from handlers.voice_generation.voice_generation import VoiceGeneration, VoiceGenerationStatus
 
 class VoiceGenerator(Generator):
-    __max_threads = 5
+    __max_threads = os.getenv('VOICE_CHANGE_WORKERS')
     
     def __init__(self, redis_storage, table: int, queue_name: str, tts_model_url: str, 
                  api_key: str, folder_id: str, return_voice_channel: str, 
