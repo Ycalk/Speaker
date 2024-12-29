@@ -74,7 +74,12 @@ class _PromptGenerator:
     
     @staticmethod
     def get_dorohov_prompt(name: str) -> dict:
-        return _PromptGenerator.get_vidos_prompt(name)
+        prompt = _PromptGenerator.get_default_prompt()
+        prompt['text'] = f"Привет <[small]> **{name}**! <[small]> **{name.upper()}**!"
+        prompt['hints'][0]['voice'] = "filipp"
+        prompt['hints'][2]['speed'] = "1.1"
+        prompt['hints'].pop(1)
+        return prompt
 
     @staticmethod
     def get_cross_prompt(name: str) -> dict:
