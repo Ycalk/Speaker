@@ -64,7 +64,7 @@ class Connector:
                 "app_type": self.__parent.app_type.value,
                 "user_id": user_id,
                 "celebrity_code": celebrity_code,
-                "user_name": user_name,
+                "user_name": user_name.lower(),
                 "gender": gender
             })
             await self.__generation_queue.publish("queue", data)
