@@ -80,8 +80,7 @@ class EverypixelAccount:
                         "audio_url": self.__current_request.audio_url,
                         "video_url": self.__current_request.video_url,
                     },
-                    auth=(self.__client_id, self.__secret),
-                    proxies=proxy
+                    auth=(self.__client_id, self.__secret)
                 )
                 self.__current_request.task_id = response.json().get("task_id")
             except Exception as _:

@@ -10,7 +10,7 @@ load_dotenv()
 
 
 class VideoGenerator(Generator):
-    __max_threads = os.getenv('VIDEO_GENERATOR_WORKERS')
+    __max_threads = int(os.getenv('VIDEO_GENERATOR_WORKERS'))
     
     def __init__(self, redis_storage, table: int, queue_name: str, return_video_channel: str,
                  notification_channel: str):
