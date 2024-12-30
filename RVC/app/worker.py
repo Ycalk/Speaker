@@ -16,47 +16,56 @@ class VoiceChanger:
         'vidos': {
             'model': 'Vidos.pth',
             'index_path': 'logs/Vidos/added_IVF216_Flat_nprobe_1_Vidos_v2.index',
-            'pitch': -11
+            'pitch': -11,
+            'device': 'cpu'
         },
         'burunov': {
             'model': 'Burunov.pth',
             'index_path': 'logs/Burunov/added_IVF772_Flat_nprobe_1_Burunov_v2.index',
-            'pitch': -11
+            'pitch': -11,
+            'device': 'cpu'
         },
         "musagaliev": {
             'model': 'Musagaliev.pth',
             'index_path': 'logs/Musagaliev/added_IVF683_Flat_nprobe_1_Musagaliev_v2.index',
-            'pitch': 0
+            'pitch': 0,
+            'device': 'cpu'
         },
         "carnaval": {
             'model': 'Carnaval.pth',
             'index_path': 'logs/Carnaval/added_IVF685_Flat_nprobe_1_Carnaval_v2.index',
-            'pitch': 0
+            'pitch': 2,
+            'device': 'cpu'
         },
         "lebedev": {
             'model': 'Lebedev.pth',
             'index_path': 'logs/Lebedev/added_IVF689_Flat_nprobe_1_Lebedev_v2.index',
-            'pitch': 0
+            'pitch': 0,
+            'device': 'cpu'
         },
         "shcherbakova": {
             'model': 'Shcherbakova.pth',
             'index_path': 'logs/Shcherbakova/added_IVF683_Flat_nprobe_1_Shcherbakova_v2.index',
-            'pitch': 0
+            'pitch': 0,
+            'device': 'cpu'
         },
         "dorohov": {
             'model': 'Dorohov.pth',
             'index_path': 'logs/Dorohov/added_IVF561_Flat_nprobe_1_Dorohov_v2.index',
-            'pitch': -11
+            'pitch': 5,
+            'device': 'cpu'
         },
         "cross": {
             'model': 'Cross.pth',
             'index_path': 'logs/Cross/added_IVF585_Flat_nprobe_1_Cross_v2.index',
-            'pitch': 6
+            'pitch': 6,
+            'device': 'cpu'
         },
         "chebatkov": {
             'model': 'Chebatkov.pth',
             'index_path': 'logs/Chebatkov/added_IVF50_Flat_nprobe_1_Chebatkov_v2.index',
-            'pitch': 0
+            'pitch': 0,
+            'device': 'cpu'
         }
     }
 
@@ -110,7 +119,7 @@ class VoiceChanger:
     
     @staticmethod
     def start_voice_changer(model, redis_url, return_channel, queue: Queue):
-        voice_changer = VoiceChanger(model, device='cpu')
+        voice_changer = VoiceChanger(model, device=VoiceChanger.infos[model]['device'])
         signal.signal(signal.SIGTERM, voice_changer.handle_signal)
         signal.signal(signal.SIGINT, voice_changer.handle_signal)
         audio_temp_root = os.getenv('audio_temp_root')
