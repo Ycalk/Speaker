@@ -1,0 +1,90 @@
+services:
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - /path/to/local/dаta:/root/redis
+      - /path/to/local/redis.conf:/usr/local/etc/redis/redis.conf
+    command: >
+      redis-server
+      --replicaof no one
+      --slave-read-only no
+    environment:
+      - REDIS_PASSWORD=speaker_bot
+      - REDIS_PORT=6379
+      - REDIS_DATABASES=16
+
+  voice_changer:
+    image: ycalk/speaker:voice_changer_gpu
+    restart: always
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 4
+              capabilities: [gpu]
+    environment:
+      - REDIS_URL=redis://default:speaker_bot@redis:6379/1
+
+  video_processor:
+    image: ycalk/speaker:video_processor_tg
+    restart: always
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      - NUM_WORKERS=15
+      - YC_STATIC_KEY_ID=
+      - YC_STATIC_KEY=
+      - BUCKET_NAME=
+      - REDIS_STORAGE=redis://default:speaker_bot@redis:6379/1
+
+  back:
+    image: ycalk/speaker:back_tg
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - REDIS_STORAGE=redis://default:speaker_bot@redis:6379
+      - YC_API_KEY=
+      - YC_STATIC_KEY=
+      - YC_STATIC_KEY_ID=
+      - GENERATED_BUCKET=
+      - VIDEO_DATA_BUCKET=
+      - YC_FOLDER_ID=
+      - SYNC_SO_API_KEY=
+      - NAME_API_URL=
+      - EVERYPIXEL_ACCS_INFO=id::key<>id::key
+      - VOICE_CHANGE_WORKERS=10
+      - VIDEO_GENERATOR_WORKERS=20
+      - EVERYPIXEL_CELEBS=
+
+  bot:
+    image: ycalk/speaker:bot
+    restart: always
+    environment:
+      - REDIS_STORAGE=redis://default:speaker_bot@redis:6379/
+      - CHANNEL_ID=
+      - CHANNEL_URL=
+      - SERVER_URL=http://back
+      - SERVER_PORT=5000
+      - TOKEN=
+  
+  stats_checker:
+    image: ycalk/speaker:stats_checker
+    restart: always
+    environment:
+      - REDIS_URL=redis://default:speaker_bot@redis:6379/2
+      - YC_STATIC_KEY_ID=
+      - YC_STATIC_KEY=
+      - STORAGE_URL=https://storage.yandexcloud.net
+      - BUCKET=
